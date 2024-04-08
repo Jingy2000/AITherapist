@@ -3,28 +3,41 @@ from openai import OpenAI
 
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_openai import ChatOpenAI
+from langchain_community.chat_models import ChatOllama
 
+from langchain_core.language_models import SimpleChatModel
+
+st.set_page_config(
+    page_title="AI Therapist", page_icon=":coffee:", initial_sidebar_state="auto"
+)
 
 st.title("Your AI Therapist")
+
+model_selection = st.sidebar.selectbox(
+    "How would you like to be contacted?",
+    ("gpt-3.5-turbo", "llama2-7b-chat")
+)
 
 msgs = StreamlitChatMessageHistory(key="chat_messages")
 
 if len(msgs.messages) == 0:
-    msgs.add_ai_message("Hello, how are you doing today!")
+    msgs.add_ai_message("Hi, how are you doing today!")
 
 view_messages = st.expander("View the message contents in session state")
 
-# Get an OpenAI API Key before continuing
-# openai_api_key = st.secrets["OPENAI_API_KEY"]
-if "openai_api_key" in st.secrets:
-    openai_api_key = st.secrets.openai_api_key
-else:
-    openai_api_key = st.sidebar.text_input("OpenAI API Key", type="password")
-if not openai_api_key:
-    st.info("Enter an OpenAI API Key to continue")
-    st.stop()
+if model_selection == "gpt-3.5-turbo":
+    # Get an OpenAI API Key before continuing
+    # openai_api_key = st.secrets["OPENAI_API_KEY"]
+    if "openai_api_key" in st.secrets:
+        openai_api_key = st.secrets.openai_api_key
+    else:
+        openai_api_key = st.sidebar.text_input("OpenAI API Key", type="password")
+    if not openai_api_key:
+        st.info("Enter an OpenAI API Key to continue")
+        st.stop()
 
 # Set up the LangChain, passing in Message History
 
@@ -35,8 +48,12 @@ prompt = ChatPromptTemplate.from_messages(
         ("human", "{question}"),
     ]
 )
+if model_selection == "gpt-3.5-turbo":
+    chain = prompt | ChatOpenAI(temperature=0, api_key=openai_api_key)
+elif model_selection == "llama2-7b-chat":
+    # TODO: The stop token is weird
+    chain = prompt | ChatOllama(model="llama2", stop=["[INST] <<SYS>><</SYS>>"])
 
-chain = prompt | ChatOpenAI(temperature=0, api_key=openai_api_key)
 chain_with_history = RunnableWithMessageHistory(
     chain,
     lambda session_id: msgs,
