@@ -136,13 +136,27 @@ def generate_dialogues(data: pd.DataFrame, model_name: str, output_path: str, ba
     print(f"All dialogues saved!")
 
 
+def combine_json(data_path: str, file_name: str, batch_indices: list) -> None:
+    all_dialogues = []
+    for batch_start, batch_end in zip(batch_indices[:-1], batch_indices[1:]):
+        with open(f"{data_path}/{file_name}_{batch_start}_{batch_end - 1}.json", 'r') as file:
+            all_dialogues.extend(json.load(file))
+
+    with open(f"{data_path}/{file_name}.json", 'w') as file:
+        json.dump(all_dialogues, file)
+
+
 if __name__ == "__main__":
-    counsel_chat_data = get_top_chat("../data/20220401_counsel_chat.csv", key="upvotes")
-    model = "gpt-4-0125-preview"
-    # model = "gpt-3.5-turbo"
-    start_row = 300
-    generate_dialogues(counsel_chat_data.iloc[start_row:start_row + 200],
+    counsel_chat_data = get_top_chat("../data/counsel_chat_dialogue/20220401_counsel_chat.csv", key="upvotes")
+    # model = "gpt-4-0125-preview"
+    model = "gpt-3.5-turbo"
+    start_row = 0
+    generate_dialogues(counsel_chat_data.iloc[start_row:],
                        model_name=model,
                        batch_size=10,
-                       output_path="../data/counsel_chat_dialogue",
+                       output_path="../data/test_counsel_chat_dialogue",
                        start_row=start_row)
+
+    # combine_json(data_path="../data/counsel_chat_dialogue", file_name="all_dialogue",
+    #              batch_indices=[0, 100, 200, 300, 500, 863])
+
