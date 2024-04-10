@@ -44,8 +44,10 @@ if model_selection == "gpt-3.5-turbo":
 prompt = ChatPromptTemplate.from_messages(
     [
         ("system", "You are a therapist having a counseling with a visitor. "
-                   "The counselor's replies should incorporate elements of empathy based on the user's descriptions, "
-                  "such as listening, leading, comforting, understanding, trust, acknowledgment, sincerity, and emotional support."),
+                   "The counselor's replies should incorporate elements of empathy " 
+                   "based on the user's descriptions, such as listening, leading, "
+                   "comforting, understanding, trust, acknowledgment, "
+                   "sincerity, and emotional support."),
         MessagesPlaceholder(variable_name="history"),
         ("human", "{question}"),
     ]
