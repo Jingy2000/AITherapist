@@ -7,3 +7,4 @@ script/*
 docker*
 .docker*
 README.md
+*/secrets.toml
