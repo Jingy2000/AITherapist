@@ -54,7 +54,15 @@ if model_selection == "gpt-3.5-turbo":
     chain = prompt | ChatOpenAI(temperature=0, api_key=openai_api_key)
 elif model_selection == "llama2-7b-chat":
     # TODO: The stop token is weird
-    chain = prompt | ChatOllama(model="llama2", stop=["[INST] <<SYS>><</SYS>>"])
+    chain = prompt | ChatOllama(model="llama2", base_url='http://ollama:11434', stop=["[INST] <<SYS>><</SYS>>"])
+
+    # prompt for Llama2  
+    # <s>[INST] <<SYS>>
+    #   {{ system_prompt }}
+    # <</SYS>>
+
+    # {{ user_message }} [/INST]
+
 
 chain_with_history = RunnableWithMessageHistory(
     chain,
