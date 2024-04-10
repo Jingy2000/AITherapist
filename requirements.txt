@@ -2,3 +2,8 @@ streamlit
 langchain
 langchain-openai
 openai
+peft
+transformers
+bitsandbytes
+trl
+accelerate
