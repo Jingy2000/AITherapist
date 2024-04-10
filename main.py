@@ -26,21 +26,32 @@ msgs = StreamlitChatMessageHistory(key="chat_messages")
 if len(msgs.messages) == 0:
     msgs.add_ai_message("Hi, how are you doing today!")
 
-view_messages = st.expander("View the message contents in session state")
+view_messages = st.expander("View the message contents in session state")  
 
 if model_selection == "gpt-3.5-turbo":
     # Get an OpenAI API Key before continuing
-    # openai_api_key = st.secrets["OPENAI_API_KEY"]
-    if "openai_api_key" in st.secrets:
-        openai_api_key = st.secrets.openai_api_key
-    else:
-        openai_api_key = st.sidebar.text_input("OpenAI API Key", type="password")
+    
+    # Attempt to retrieve API key from secrets
+    try:
+        openai_api_key = st.secrets["openai_api_key"]
+    except (FileNotFoundError, KeyError):
+        openai_api_key = None
+        openai_api_key = st.sidebar.text_input('OpenAI API Key', type='password')
+
     if not openai_api_key:
         st.info("Enter an OpenAI API Key to continue")
         st.stop()
+    elif not openai_api_key.startswith('sk-'):
+        st.warning('Please enter your valid OpenAI API key!', icon='⚠')
+        st.stop()
+    
+    try:
+        response = ChatOpenAI(temperature=0, api_key=openai_api_key).invoke("Hello")
+    except Exception as e:
+        st.warning('Please enter your valid OpenAI API key!', icon='⚠')
+        st.stop()
 
 # Set up the LangChain, passing in Message History
-
 prompt = ChatPromptTemplate.from_messages(
     [
         ("system", "You are a therapist having a counseling with a visitor. "
