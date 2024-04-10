@@ -143,7 +143,7 @@ def combine_json(data_path: str, file_name: str, batch_indices: list) -> None:
             all_dialogues.extend(json.load(file))
 
     with open(f"{data_path}/{file_name}.json", 'w') as file:
-        json.dump(all_dialogues, file)
+        json.dump(all_dialogues, file, indent=4)
 
 
 if __name__ == "__main__":
