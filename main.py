@@ -17,8 +17,8 @@ st.set_page_config(
 st.title("Your AI Therapist")
 
 model_selection = st.sidebar.selectbox(
-    "How would you like to be contacted?",
-    ("gpt-3.5-turbo", "llama2-7b-chat")
+    "What's your preferred model of communication?",
+    ("gpt-3.5-turbo", "llama2-7b-chat", "mistral-7b")
 )
 
 msgs = StreamlitChatMessageHistory(key="chat_messages")
@@ -50,19 +50,17 @@ prompt = ChatPromptTemplate.from_messages(
         ("human", "{question}"),
     ]
 )
+
 if model_selection == "gpt-3.5-turbo":
     chain = prompt | ChatOpenAI(temperature=0, api_key=openai_api_key)
-elif model_selection == "llama2-7b-chat":
-    # TODO: The stop token is weird
-    chain = prompt | ChatOllama(model="llama2", base_url='http://ollama:11434', stop=["[INST] <<SYS>><</SYS>>"])
-
-    # prompt for Llama2  
-    # <s>[INST] <<SYS>>
-    #   {{ system_prompt }}
-    # <</SYS>>
-
-    # {{ user_message }} [/INST]
-
+elif model_selection in ["llama2-7b-chat", "mistral-7b"]:
+    if model_selection == "llama2-7b-chat":
+        model = "llama2"
+        stop_tokens = ["[INST]", "[/INST]", "<<SYS>>", "<</SYS>>"]
+    else:
+        model = "mistral"
+        stop_tokens = ["[INST]", "[/INST]"]
+    chain = prompt | ChatOllama(model=model, base_url='http://ollama:11434', stop=stop_tokens)
 
 chain_with_history = RunnableWithMessageHistory(
     chain,
@@ -70,7 +68,6 @@ chain_with_history = RunnableWithMessageHistory(
     input_messages_key="question",
     history_messages_key="history",
 )
-
 
 # Render current messages from StreamlitChatMessageHistory
 for msg in msgs.messages:
@@ -87,5 +84,3 @@ if prompt := st.chat_input():
 # Draw the messages at the end, so newly generated ones show up immediately
 with view_messages:
     view_messages.json(st.session_state.chat_messages)
-
-
