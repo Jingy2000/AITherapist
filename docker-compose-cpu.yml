@@ -1,0 +1,27 @@
+services:
+  base:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: therapist-env
+  
+  streamlit:
+    image: therapist-env
+    working_dir: /app
+    ports:
+      - "8501:8501"
+      # - "11434:11434"
+    command: streamlit run main.py --server.port=8501 --server.address=0.0.0.0
+  
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    # command: ollama pull llama2
+
+  
+volumes:
+  ollama:

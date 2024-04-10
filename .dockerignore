@@ -1,0 +1,9 @@
+data/*
+script/*
+.idea
+.git
+.gitignore
+.Da_Store
+docker*
+.docker*
+README.md
