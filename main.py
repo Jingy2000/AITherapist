@@ -1,3 +1,4 @@
+import requests
 import streamlit as st
 from openai import OpenAI
 
@@ -19,6 +20,14 @@ st.set_page_config(
 st.title("Your AI Therapist")
 
 ss = st.session_state
+
+def send_post_request(local_model_name: str):
+    url = "http://ollama:11434/api/pull"
+    data = {"name": local_model_name,
+            "stream": False,
+            }
+    response = requests.post(url, json=data)
+    return response
 
 with st.sidebar:
     st.markdown("<h1 style='text-align:left;font-family:Georgia'>AI Therapist </h1>",
@@ -44,7 +53,7 @@ with st.sidebar:
         st.divider()
         model = st.selectbox(
             "Model", 
-            options=("gpt-3.5-turbo", "llama2-7b-chat", "mistral-7b"),
+            options=("gpt-3.5-turbo", "llama2", "mistral"),
             index=0,
             )
         openai_api_key = st.text_input(
@@ -59,6 +68,15 @@ with st.sidebar:
                 "model": model,
                 "temperature": temperature,
             }
+            if ss.model_config['model'] in ["llama2", "mistral"]:
+                with st.spinner(text="Loading model ..."):
+                    response = send_post_request(ss.model_config['model'])
+                    if response.ok and response.json()['status'] == 'success':
+                        st.success('Model Loaded!')
+                    else:
+                        st.error('This is an error', icon="🚨")
+                    pass
+    
 
 st.divider()
 st.markdown("<h4 style='text-align:left;font-family:Georgia'>"
@@ -66,6 +84,14 @@ st.markdown("<h4 style='text-align:left;font-family:Georgia'>"
             unsafe_allow_html=True)
 
 
+
+# response = send_post_request()
+# if response.ok:
+#     # Process the successful response here
+#     print(response.json())
+# else:
+#     # Handle errors here
+#     print("Error:", response.status_code)
 
 
 if not "model_config" in ss:
@@ -114,8 +140,8 @@ if ss.model_config['model'] == "gpt-3.5-turbo":
     chain = prompt | ChatOpenAI(temperature=ss.model_config['temperature'],
                                 api_key=openai_api_key
                                 )
-elif ss.model_config['model'] in ["llama2-7b-chat", "mistral-7b"]:
-    if ss.model_config['model'] == "llama2-7b-chat":
+elif ss.model_config['model'] in ["llama2", "mistral"]:
+    if ss.model_config['model'] == "llama2":
         stop_tokens = ["[INST]", "[/INST]", "<<SYS>>", "<</SYS>>"]
     else:
         stop_tokens = ["[INST]", "[/INST]"]
