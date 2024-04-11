@@ -10,7 +10,6 @@ services:
     working_dir: /app
     ports:
       - "8501:8501"
-      # - "11434:11434"
     command: streamlit run main.py --server.port=8501 --server.address=0.0.0.0
   
   ollama:
@@ -26,8 +25,6 @@ services:
           devices:
             - driver: nvidia
               capabilities: [gpu]
-    # command: ollama pull llama2
-
   
 volumes:
   ollama:
