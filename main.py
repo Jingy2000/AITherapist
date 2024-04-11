@@ -52,7 +52,7 @@ with st.sidebar:
             placeholder="only for gpt-3.5-turbo",
             type="password"
             )
-        temperature = st.slider("Temperature", 0.0, 1.0, 0.1, 0.1, format="%.1f")
+        temperature = st.slider("Temperature", 0.0, 10.0, 0.1, 0.1, format="%.1f")
         if st.form_submit_button("Save"):
             ss.model_config = {
                 "openai_api_key": openai_api_key,
