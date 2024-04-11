@@ -1,15 +1,11 @@
 import requests
 import streamlit as st
-from openai import OpenAI
 
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_openai import ChatOpenAI
 from langchain_community.chat_models import ChatOllama
-
-from langchain_core.language_models import SimpleChatModel
 
 
 st.set_page_config(
@@ -85,14 +81,6 @@ st.markdown("<h4 style='text-align:left;font-family:Georgia'>"
 
 
 
-# response = send_post_request()
-# if response.ok:
-#     # Process the successful response here
-#     print(response.json())
-# else:
-#     # Handle errors here
-#     print("Error:", response.status_code)
-
 
 if not "model_config" in ss:
     st.stop()
@@ -106,7 +94,6 @@ view_messages = st.expander("View the message contents in session state")
 
 if ss.model_config['model'] == "gpt-3.5-turbo":
     # Get an OpenAI API Key before continuing
-    
     # Attempt to retrieve API key from secrets
     try:
         openai_api_key = st.secrets["openai_api_key"]
