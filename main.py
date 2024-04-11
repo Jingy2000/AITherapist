@@ -116,12 +116,10 @@ if ss.model_config['model'] == "gpt-3.5-turbo":
                                 )
 elif ss.model_config['model'] in ["llama2-7b-chat", "mistral-7b"]:
     if ss.model_config['model'] == "llama2-7b-chat":
-        model = "llama2"
         stop_tokens = ["[INST]", "[/INST]", "<<SYS>>", "<</SYS>>"]
     else:
-        model = "mistral"
         stop_tokens = ["[INST]", "[/INST]"]
-    chain = prompt | ChatOllama(model=model,
+    chain = prompt | ChatOllama(model=ss.model_config['model'],
                                 base_url='http://ollama:11434',
                                 stop=stop_tokens,
                                 temperature=ss.model_config['temperature'],
