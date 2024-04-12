@@ -1,13 +1,74 @@
 import requests
 import streamlit as st
+from datetime import datetime
+from sqlalchemy import (create_engine, Column, Integer,
+                        String, DateTime, Enum, ForeignKey)
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, relationship
 
-from langchain_community.chat_message_histories import StreamlitChatMessageHistory
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_openai import ChatOpenAI
+from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_community.chat_models import ChatOllama
+from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 
 
+# Connect to the database
+engine = create_engine('sqlite:///example.db')
+Session = sessionmaker(bind=engine)
+session = Session()
+
+Base = declarative_base()
+
+class Conversation(Base):
+    __tablename__ = 'conversations'
+    id = Column(Integer, primary_key=True)
+    start_time = Column(DateTime, default=datetime.now)
+
+    # Relationship to link messages to a conversation
+    messages = relationship("Message", back_populates="conversation")
+
+class Message(Base):
+    __tablename__ = 'messages'
+    id = Column(Integer, primary_key=True)
+    conversation_id = Column(Integer, ForeignKey('conversations.id'))
+    message = Column(String)
+    timestamp = Column(DateTime, default=datetime.now)
+    role = Column(Enum('human', 'ai', name='role_types'))
+
+    # Relationship to link a message back to its conversation
+    conversation = relationship("Conversation", back_populates="messages")
+
+def start_conversation():
+    new_conversation = Conversation()
+    session.add(new_conversation)
+    session.commit()
+    return new_conversation.id
+
+def store_message(conversation_id, user_id, message, role):
+    new_message = Message(
+        conversation_id=conversation_id,
+        user_id=user_id,
+        message=message,
+        role=role,
+        timestamp=datetime.utcnow()
+    )
+    session.add(new_message)
+    session.commit()
+
+def get_conversation_messages(conversation_id):
+    messages = session.query(
+        Message
+        ).filter_by(
+            conversation_id=conversation_id
+            ).order_by(
+                Message.timestamp
+                ).all()
+    return [(msg.user_id, msg.message, msg.timestamp, msg.role) for msg in messages]
+
+Base.metadata.create_all(engine)
+
+# rendering
 st.set_page_config(
     page_title="AI Therapist",
     page_icon=":coffee:",
@@ -69,11 +130,12 @@ with st.sidebar:
                 if not openai_api_key:
                     st.info("Enter an OpenAI API Key to continue")
                     st.stop()
-    
+        
                 try:
                     response = ChatOpenAI(temperature=0,
                                           max_tokens=2,
                                           api_key=openai_api_key).invoke("Hello")
+                    st.success('Model Loaded!')
                 except Exception as e:
                     st.warning('Please enter your valid OpenAI API key!', icon='⚠')
                     st.stop()
@@ -148,10 +210,13 @@ for msg in msgs.messages:
 # If user inputs a new prompt, generate and draw a new response
 if prompt := st.chat_input():
     st.chat_message("human").write(prompt)
+    # store_message(chat_id=0, role=RoleEnum.HUMAN, message=prompt)
     # Note: new messages are saved to history automatically by Langchain during run
     config = {"configurable": {"session_id": "any"}}
     response = chain_with_history.stream({"question": prompt}, config)
     st.chat_message("ai").write_stream(response)
+    # store_message(chat_id=0, role=RoleEnum.AI, message=ss.chat_messages[-1])
+    print(ss.chat_messages[-1])
 
 # Draw the messages at the end, so newly generated ones show up immediately
 # with view_messages:
