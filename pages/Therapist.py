@@ -67,6 +67,9 @@ def get_conversation_messages(conversation_id):
                 ).all()
     return [(msg.user_id, msg.message, msg.timestamp, msg.role) for msg in messages]
 
+def get_all_conversations():
+    return session.query(Conversation).all()
+
 Base.metadata.create_all(engine)
 
 # rendering
@@ -142,8 +145,9 @@ with st.sidebar:
 
     with st.form("history"):
         st.header("Chat history")
-        chat_history_in_db = ['1', '2']
-        selected_item = st.selectbox("Chat history:", chat_history_in_db)
+        chat_history_in_db = get_all_conversations()
+        chat_history_start_time_list = [conversation.start_time for conversation in chat_history_in_db]
+        selected_item = st.selectbox("Chat history:", chat_history_start_time_list)
         if st.form_submit_button("Confirm"):
             st.write(f"You selected {selected_item}")
             
