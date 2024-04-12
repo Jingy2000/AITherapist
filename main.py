@@ -99,9 +99,6 @@ with st.sidebar:
 st.divider()
 
 if not "model_config" in ss:
-    st.markdown("<h4 style='text-align:left;font-family:Georgia'>"
-                "Please select a model and/or enter a valid key</h4>",
-                unsafe_allow_html=True)
     st.stop()
 
 msgs = StreamlitChatMessageHistory(key="chat_messages")
