@@ -3,8 +3,9 @@ import streamlit as st
 from datetime import datetime
 from sqlalchemy import (create_engine, Column, Integer,
                         String, DateTime, Enum, ForeignKey)
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import (sessionmaker,
+                            relationship,
+                            declarative_base)
 
 from langchain_openai import ChatOpenAI
 from langchain_core.runnables.history import RunnableWithMessageHistory
@@ -23,7 +24,7 @@ Base = declarative_base()
 class Conversation(Base):
     __tablename__ = 'conversations'
     id = Column(Integer, primary_key=True)
-    start_time = Column(DateTime, default=datetime.now)
+    start_time = Column(DateTime, default=datetime.now())
 
     # Relationship to link messages to a conversation
     messages = relationship("Message", back_populates="conversation")
@@ -33,7 +34,7 @@ class Message(Base):
     id = Column(Integer, primary_key=True)
     conversation_id = Column(Integer, ForeignKey('conversations.id'))
     message = Column(String)
-    timestamp = Column(DateTime, default=datetime.now)
+    timestamp = Column(DateTime, default=datetime.now())
     role = Column(Enum('human', 'ai', name='role_types'))
 
     # Relationship to link a message back to its conversation
@@ -51,7 +52,7 @@ def store_message(conversation_id, user_id, message, role):
         user_id=user_id,
         message=message,
         role=role,
-        timestamp=datetime.utcnow()
+        timestamp=datetime.now()
     )
     session.add(new_message)
     session.commit()
@@ -74,7 +75,8 @@ st.set_page_config(
     page_icon=":coffee:",
     initial_sidebar_state="auto"
     )
-st.title("Your AI Therapist")
+st.markdown("<h2 style='text-align:left;font-family:Georgia'>Your AI Therapist</h2>",
+            unsafe_allow_html=True)
 
 ss = st.session_state
 
@@ -87,9 +89,6 @@ def send_post_request(local_model_name: str):
     return response
 
 with st.sidebar:
-    st.markdown("<h1 style='text-align:left;font-family:Georgia'>AI Therapist </h1>",
-                unsafe_allow_html=True)
-
     with st.form("config"):
         st.header("Configuration")
         st.divider()
@@ -104,6 +103,7 @@ with st.sidebar:
             type="password"
             )
         temperature = st.slider("Temperature", 0.0, 2.0, 0.0, 0.1, format="%.1f")
+
         if st.form_submit_button("Submit"):
             ss.model_config = {
                 "openai_api_key": openai_api_key,
@@ -140,23 +140,13 @@ with st.sidebar:
                     st.warning('Please enter your valid OpenAI API key!', icon='⚠')
                     st.stop()
 
-    st.divider()
-    st.markdown("<h2 style='text-align:left;font-family:Georgia'>Introduction</h2>",
-                unsafe_allow_html=True)
-    st.markdown("An AI-powered therapy application designed to be your virtual companion "
-                "on your journey toward better mental well-being. "
-                "Built with advanced natural language processing and machine learning algorithms, "
-                "AI Therapist provides a safe, non-judgmental space for you "
-                "to express your thoughts, concerns, and emotions.")
-    st.markdown("Our AI therapist is trained to actively listen, empathize, "
-                "and provide personalized insights and coping strategies tailored to your unique situation. "
-                "Whether you're dealing with anxiety, depression, relationship issues, "
-                "or simply seeking self-improvement, "
-                "AI Therapist is here to support you every step of the way.")
-    st.markdown("<h2 style='text-align:left;font-family:Georgia'>Features</h2>",
-                unsafe_allow_html=True)
-    st.markdown(" - one")
-    st.markdown(" - two")
+    with st.form("history"):
+        st.header("Chat history")
+        chat_history_in_db = ['1', '2']
+        selected_item = st.selectbox("Chat history:", chat_history_in_db)
+        if st.form_submit_button("Confirm"):
+            st.write(f"You selected {selected_item}")
+            
 
 st.divider()
 
@@ -185,7 +175,7 @@ prompt = ChatPromptTemplate.from_messages(
 
 if ss.model_config['model'] == "gpt-3.5-turbo":
     chain = prompt | ChatOpenAI(temperature=ss.model_config['temperature'],
-                                api_key=openai_api_key)
+                                api_key=ss.model_config['openai_api_key'])
 elif ss.model_config['model'] in ["llama2", "mistral"]:
     if ss.model_config['model'] == "llama2":
         stop_tokens = ["[INST]", "[/INST]", "<<SYS>>", "<</SYS>>"]
