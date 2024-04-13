@@ -7,3 +7,5 @@ transformers
 bitsandbytes
 trl
 accelerate
+pymysql
+cryptography

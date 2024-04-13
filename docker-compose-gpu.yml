@@ -10,6 +10,11 @@ services:
     working_dir: /app
     ports:
       - "8501:8501"
+    environment:
+      MYSQL_HOST: sql_db
+      MYSQL_USER: root
+      MYSQL_PASSWORD: secret
+      MYSQL_DB: mydatabase
     command: streamlit run main.py --server.port=8501 --server.address=0.0.0.0
   
   ollama:
@@ -26,5 +31,14 @@ services:
             - driver: nvidia
               capabilities: [gpu]
   
+  sql_db:
+    image: mysql:8.0
+    volumes:
+      - sql-data-db:/var/lib/mysql
+    environment: 
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: mydatabase
+  
 volumes:
   ollama:
+  sql-data-db:

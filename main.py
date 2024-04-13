@@ -1,3 +1,4 @@
+import os, time
 import requests
 import streamlit as st
 from datetime import datetime
@@ -15,7 +16,17 @@ from langchain_community.chat_message_histories.streamlit import StreamlitChatMe
 
 
 # SQL database
-engine = create_engine('sqlite:///example.db')
+# Configure the SQLAlchemy connection string
+db_user = os.getenv('MYSQL_USER')
+db_password = os.getenv('MYSQL_PASSWORD')
+db_host = os.getenv('MYSQL_HOST')
+db_name = os.getenv('MYSQL_DB')
+
+# Add a delay before creating the SQLAlchemy instance
+# delay_seconds = 30
+# time.sleep(delay_seconds)
+
+engine = create_engine(f'mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_name}')
 Session = sessionmaker(bind=engine)
 session = Session()
 
@@ -33,7 +44,7 @@ class Message(Base):
     __tablename__ = 'messages'
     id = Column(Integer, primary_key=True)
     conversation_id = Column(Integer, ForeignKey('conversations.id'))
-    message = Column(String)
+    message = Column(String(2048))
     timestamp = Column(DateTime, default=datetime.now())
     role = Column(Enum('human', 'ai', name='role_types'))
 
