@@ -11,10 +11,10 @@ from langchain_openai import ChatOpenAI
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_community.chat_models import ChatOllama
-from langchain_community.chat_message_histories import StreamlitChatMessageHistory
+from langchain_community.chat_message_histories.streamlit import StreamlitChatMessageHistory
 
 
-# Connect to the database
+# SQL database
 engine = create_engine('sqlite:///example.db')
 Session = sessionmaker(bind=engine)
 session = Session()
@@ -72,7 +72,7 @@ def get_all_conversations():
 
 Base.metadata.create_all(engine)
 
-# rendering
+# Webpage rendering
 st.set_page_config(
     page_title="AI Therapist",
     page_icon=":coffee:",
@@ -103,7 +103,7 @@ with st.sidebar:
         openai_api_key = st.text_input(
             "Your OpenAI API key",
             placeholder="only for gpt-3.5-turbo",
-            type="password"
+            type="password",
             )
         temperature = st.slider("Temperature", 0.0, 2.0, 0.0, 0.1, format="%.1f")
 
@@ -119,34 +119,39 @@ with st.sidebar:
                     response = send_post_request(ss.model_config['model'])
                     if response.ok and response.json()['status'] == 'success':
                         st.success('Model Loaded!')
+                        ss.model_is_ready = True
                     else:
                         st.error('This is an error', icon="🚨")
+                        ss.model_is_raedy = False
 
             if ss.model_config['model'] == "gpt-3.5-turbo":
                 # Get an OpenAI API Key before continuing
                 # Attempt to retrieve API key from secrets
                 try:
                     openai_api_key = st.secrets["openai_api_key"]
+                    st.warning('Found a key in local secrets.toml')
                 except (FileNotFoundError, KeyError):
                     openai_api_key = ss.model_config['openai_api_key']
 
                 if not openai_api_key:
                     st.info("Enter an OpenAI API Key to continue")
-                    st.stop()
-        
-                try:
-                    response = ChatOpenAI(temperature=0,
-                                          max_tokens=2,
-                                          api_key=openai_api_key).invoke("Hello")
-                    st.success('Model Loaded!')
-                except Exception as e:
-                    st.warning('Please enter your valid OpenAI API key!', icon='⚠')
-                    st.stop()
+                    ss.model_is_ready = False
+                else:
+                    try:
+                        response = ChatOpenAI(temperature=0,
+                                            max_tokens=2,
+                                            api_key=openai_api_key).invoke("Hello")
+                        st.success('Model Loaded!')
+                        ss.model_is_ready = True
+                    except Exception as e:
+                        st.warning('Please enter your valid OpenAI API key!', icon='⚠')
+                        ss.model_is_ready = False
 
     with st.form("history"):
         st.header("Chat history")
         chat_history_in_db = get_all_conversations()
-        chat_history_start_time_list = [conversation.start_time for conversation in chat_history_in_db]
+        chat_history_start_time_list = [conversation.start_time
+                                        for conversation in chat_history_in_db]
         selected_item = st.selectbox("Chat history:", chat_history_start_time_list)
         if st.form_submit_button("Confirm"):
             st.write(f"You selected {selected_item}")
@@ -154,7 +159,17 @@ with st.sidebar:
 
 st.divider()
 
-if not "model_config" in ss:
+if not 'model_is_ready' in ss or not ss.model_is_ready:
+    st.markdown("An AI-powered therapy application designed to be your virtual companion "
+                "on your journey toward better mental well-being. "
+                  "Built with advanced natural language processing and machine learning algorithms, "
+                  "AI Therapist provides a safe, non-judgmental space for you "
+                  "to express your thoughts, concerns, and emotions.")
+    st.markdown("Our AI therapist is trained to actively listen, empathize, "
+                "and provide personalized insights and coping strategies tailored to your unique situation. "
+                "Whether you're dealing with anxiety, depression, relationship issues, "
+                "or simply seeking self-improvement, "
+                "AI Therapist is here to support you every step of the way.")
     st.stop()
 
 msgs = StreamlitChatMessageHistory(key="chat_messages")
@@ -210,7 +225,6 @@ if prompt := st.chat_input():
     response = chain_with_history.stream({"question": prompt}, config)
     st.chat_message("ai").write_stream(response)
     # store_message(chat_id=0, role=RoleEnum.AI, message=ss.chat_messages[-1])
-    print(ss.chat_messages[-1])
 
 # Draw the messages at the end, so newly generated ones show up immediately
 # with view_messages:
