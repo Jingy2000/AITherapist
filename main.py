@@ -2,6 +2,7 @@ import os, time
 import requests
 import streamlit as st
 from datetime import datetime
+from sqlalchemy.exc import OperationalError
 from sqlalchemy import (create_engine, Column, Integer,
                         String, DateTime, Enum, ForeignKey)
 from sqlalchemy.orm import (sessionmaker,
@@ -16,17 +17,27 @@ from langchain_community.chat_message_histories.streamlit import StreamlitChatMe
 
 
 # SQL database
-# Configure the SQLAlchemy connection string
 db_user = os.getenv('MYSQL_USER')
 db_password = os.getenv('MYSQL_PASSWORD')
 db_host = os.getenv('MYSQL_HOST')
 db_name = os.getenv('MYSQL_DB')
 
-# Add a delay before creating the SQLAlchemy instance
-# delay_seconds = 30
-# time.sleep(delay_seconds)
+def create_engine_with_checks(dsn, retries=7, delay=5):
+    for _ in range(retries):
+        try:
+            engine = create_engine(dsn)
+            with engine.connect() as connection:
+                return engine
+        except OperationalError as e:
+            time.sleep(delay)
+    
+    return None
 
-engine = create_engine(f'mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_name}')
+engine = create_engine_with_checks(dsn=f'mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_name}')
+
+if not engine: 
+    raise Exception("Failed to connect to the database after several attempts.")
+
 Session = sessionmaker(bind=engine)
 session = Session()
 
