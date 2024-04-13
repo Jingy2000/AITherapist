@@ -46,10 +46,9 @@ def start_conversation():
     session.commit()
     return new_conversation.id
 
-def store_message(conversation_id, user_id, message, role):
+def store_message(conversation_id, message, role):
     new_message = Message(
         conversation_id=conversation_id,
-        user_id=user_id,
         message=message,
         role=role,
         timestamp=datetime.now()
@@ -65,7 +64,7 @@ def get_conversation_messages(conversation_id):
             ).order_by(
                 Message.timestamp
                 ).all()
-    return [(msg.user_id, msg.message, msg.timestamp, msg.role) for msg in messages]
+    return messages
 
 def get_all_conversations():
     return session.query(Conversation).all()
@@ -150,10 +149,15 @@ with st.sidebar:
     with st.form("history"):
         st.header("Chat history")
         chat_history_in_db = get_all_conversations()
-        chat_history_start_time_list = [conversation.start_time
+        chat_history_start_time_list = [conversation.id
                                         for conversation in chat_history_in_db]
         selected_item = st.selectbox("Chat history:", chat_history_start_time_list)
+
         if st.form_submit_button("Confirm"):
+            ss.current_conversation_id = selected_item
+            ss.selected_chat_history = get_conversation_messages(selected_item)
+            if "chat_messages" in ss:
+                del ss.chat_messages
             st.write(f"You selected {selected_item}")
             
 
@@ -172,12 +176,23 @@ if not 'model_is_ready' in ss or not ss.model_is_ready:
                 "AI Therapist is here to support you every step of the way.")
     st.stop()
 
+
 msgs = StreamlitChatMessageHistory(key="chat_messages")
 
-if len(msgs.messages) == 0:
-    msgs.add_ai_message("Hi, how are you doing today!")
+if 'selected_chat_history' in ss:
+    if len(msgs.messages) == 0:
+        for msg_history in ss.selected_chat_history:
+            if msg_history.role == "ai":
+                msgs.add_ai_message(msg_history.message)
+            elif msg_history.role == "human":
+                msgs.add_user_message(msg_history.message)
 
-# view_messages = st.expander("View the message contents in session state")
+if len(msgs.messages) == 0:
+    ss.current_conversation_id = start_conversation()
+    msgs.add_ai_message("Hi, how are you doing today!")
+    store_message(conversation_id=ss.current_conversation_id,
+                  message=msgs.messages[-1].content,
+                  role="ai",)
 
 # Set up the LangChain, passing in Message History
 prompt = ChatPromptTemplate.from_messages(
@@ -219,13 +234,13 @@ for msg in msgs.messages:
 # If user inputs a new prompt, generate and draw a new response
 if prompt := st.chat_input():
     st.chat_message("human").write(prompt)
-    # store_message(chat_id=0, role=RoleEnum.HUMAN, message=prompt)
-    # Note: new messages are saved to history automatically by Langchain during run
+    store_message(conversation_id=ss.current_conversation_id,
+                  message=prompt,
+                  role="human",)
+    
     config = {"configurable": {"session_id": "any"}}
     response = chain_with_history.stream({"question": prompt}, config)
     st.chat_message("ai").write_stream(response)
-    # store_message(chat_id=0, role=RoleEnum.AI, message=ss.chat_messages[-1])
-
-# Draw the messages at the end, so newly generated ones show up immediately
-# with view_messages:
-#     view_messages.json(st.session_state.chat_messages)
+    store_message(conversation_id=ss.current_conversation_id,
+                  message=msgs.messages[-1].content,
+                  role="ai")

@@ -8,3 +8,4 @@ docker*
 .docker*
 README.md
 */secrets.toml
+*.db
