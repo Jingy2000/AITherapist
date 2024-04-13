@@ -33,4 +33,4 @@ or
 ```
 docker compose -f docker-compose-cpu.yml down
 ```
-when necessary to delete the volume for chat history, use flag *--volumes*. Please note this will also remove the volume for ollama's local models.
+when necessary to delete the volume containing chat history, use flag *--volumes*. Please note this will also remove the volume containing ollama's local models.
