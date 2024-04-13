@@ -4,7 +4,6 @@ import json
 import pandas as pd
 
 from langchain_openai import ChatOpenAI
-from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 
@@ -144,6 +143,117 @@ def combine_json(data_path: str, file_name: str, batch_indices: list) -> None:
 
     with open(f"{data_path}/{file_name}.json", 'w') as file:
         json.dump(all_dialogues, file, indent=4)
+        
+def validate_dialogue_format(dialogue: dict) -> bool:
+    
+    """
+    Validate the format of a dialogue dictionary.
+
+    Args:
+        dialogue (dict): A dictionary representing a dialogue.
+
+    Returns:
+        bool: True if the dialogue format is valid, False otherwise.
+    """
+
+    role_set = {"client", "counselor"}
+
+    if "messages" not in dialogue:
+        print("missing key: message.")
+        return False
+    
+    # meesage should start with counselor
+    if len(dialogue["messages"]) == 0 or dialogue["messages"][0]["role"] != "counselor":
+        print("Empty message list or message doesn't start with counselor.")
+        return False
+    else:
+        previous_role = "client"
+    for msg in dialogue["messages"]:
+        # check if role and content are in the mseeage
+        if msg["role"] not in role_set:
+            print("Invalid role name.")
+            return False
+        if "content" not in msg or msg["content"] == "":
+            print("Include empty content.")
+            return False
+        # check if same role appears consecutively
+        if msg["role"] == previous_role:
+            print("The same role appears in two consecutive messages.")
+            return False
+        previous_role = msg["role"]
+    return True
+        
+
+def validate_dialouge_dataset(dialouges: list[dict]) -> list[int]:
+    invalid_index = []
+    
+    for index, dialouge in enumerate(dialouges):
+        is_dialouge = validate_dialogue_format(dialouge)
+        if not is_dialouge:
+            print(f"{index} dialouge has format issue.\n")
+            invalid_index.append(index)
+
+    print(f"Format validation completed, {len(invalid_index)} / {len(dialouges)} of dialougus have invalid format.")
+    return invalid_index
+
+
+def merge_consecutive_msg(dialouges: dict, invalid_index: list[int]) -> dict:
+    """
+    Merge consecutive messages with the same role in dialogues.
+
+    Args:
+        dialouges (dict): A dictionary containing dialogues.
+        invalid_index (list[int]): A list of invalid indices.
+
+    Returns:
+        dict: A dictionary with merged consecutive messages.
+    """
+    for index in invalid_index:
+        msgs = dialouges[index]["messages"]
+        merged_msgs = []
+        i = 0
+        while i < len(msgs):
+            # print(f"{msg['role']}: {msg['content']}")
+            if i < len(msgs) - 1 and msgs[i]["role"] == msgs[i + 1]["role"]:
+                content = msgs[i]["content"] + msgs[i + 1]["content"]
+                msg = {"role": msgs[i]["role"], "content": content}
+                merged_msgs.append(msg)
+                i += 2
+            else:
+                merged_msgs.append(msgs[i])
+                i += 1
+        dialouges[index]["messages"] = merged_msgs
+    print("Merged all consecutive message.")
+    return dialouges
+    
+        
+        
+def format_multiturn_dialogue_llama(messages: list[dict]) -> str:
+    """
+    format a list of message into a llama-chat trainable format like this:
+    
+    <s>[INST] <<SYS>>
+    You are are a helpful... bla bla.. assistant
+    <</SYS>>
+
+    Hi there! [/INST] Hello! How can I help you today? </s><s>[INST] What is a neutron star? [/INST] A neutron star is a ... </s><s> [INST] Okay cool, thank you! [/INST] You're welcome! </s>
+    
+
+    Args:
+        messages (list[dict]): _description_
+
+    Returns:
+        str: _description_
+    """
+    
+    result = ""
+    system_msg = "You are a therapist having a counseling with a visitor."
+    result += "<s>[INST] <<SYS>>\n" + system_msg + "\n<</SYS>>\n\n"
+    
+    # for msg in messages:
+         
+
+    
 
 
 if __name__ == "__main__":
@@ -157,6 +267,25 @@ if __name__ == "__main__":
                        output_path="../data/test_counsel_chat_dialogue",
                        start_row=start_row)
 
+    # # combine my batch data into a single json file
     # combine_json(data_path="../data/counsel_chat_dialogue", file_name="all_dialogue",
     #              batch_indices=[0, 100, 200, 300, 500, 863])
-
+    
+    # dataset validation
+    with open("../data/counsel_chat_dialogue/all_dialogue.json", "r") as f:
+        dialouges = json.load(f)
+    invalid_index = validate_dialouge_dataset(dialouges)
+    
+    # clean the invalid dialouge by combining consecutive message into one
+    dialouges = merge_consecutive_msg(dialouges, invalid_index)  
+    validate_dialouge_dataset(dialouges)
+    
+    # save it again
+    json_string = json.dumps(dialouges, indent=4)
+    with open("../data/counsel_chat_dialogue/all_dialogue_cleaned.json", "w") as f:
+        f.write(json_string)
+    
+    
+    
+    
+    
