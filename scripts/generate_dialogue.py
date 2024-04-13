@@ -7,6 +7,8 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 
+from transformers import AutoTokenizer
+
 os.environ["OPENAI_API_KEY"] = getpass.getpass()
 convert_prompt = ("You're a therapist specializing in the field of psychological counseling. "
                   "Your task is to simulate and generate a multi-turn empathetic conversation using the information provided and output a JSON file. "
@@ -227,89 +229,125 @@ def merge_consecutive_msg(dialouges: dict, invalid_index: list[int]) -> dict:
     return dialouges
     
         
-        
-def format_multiturn_dialogue_llama(messages: list[dict]) -> str:
-    """
-    Format a list of message into a llama-chat trainable forma. 
-    Noete, the only special character in llama tokenizer is <s>, </s> and <unk>. 
-    Check the link here: https://huggingface.co/NousResearch/Llama-2-7b-chat-hf/blob/main/tokenizer_config.json
-    So, here is some example of the tokenizer:
+# # Do not use this now, directly use tokenizer.apply_chat_template   
+# def format_multiturn_dialogue_llama_(messages: list[dict]) -> str:
+#     """
+#     Format a list of message into a llama-chat trainable forma. 
+#     Noete, the only special character in llama tokenizer is <s>, </s> and <unk>. 
+#     Check the link here: https://huggingface.co/NousResearch/Llama-2-7b-chat-hf/blob/main/tokenizer_config.json
+#     So, here is some example of the tokenizer:
     
-    "<s></s>" -> ['<s>', '</', 's', '>']
-    "<s> </s>" -> ['<s>', '</s>']
-    "</s><s>" -> ['</s>', '<', 's', '>']
-    "<s>[INST]" ->  ['<s>', '[', 'INST', ']']
-    "<s> hello, world! </s><s> Hi </s>" -> ['<s>', 'hello', ',', 'world', '!', '</s>', '<', 's', '>', 'Hi', '</s>']
+#     "<s></s>" -> ['<s>', '</', 's', '>']
+#     "<s> </s>" -> ['<s>', '</s>']
+#     "</s><s>" -> ['</s>', '<', 's', '>']
+#     "<s>[INST]" ->  ['<s>', '[', 'INST', ']']
+#     "<s> hello, world! </s><s> Hi </s>" -> ['<s>', 'hello', ',', 'world', '!', '</s>', '<', 's', '>', 'Hi', '</s>']
     
-    This is the format, as described in this link: https://huggingface.co/blog/llama2#how-to-prompt-llama-2
-    <s>[INST] <<SYS>>
-    {{ system_prompt }}
-    <</SYS>>
+#     This is the format, as described in this link: https://huggingface.co/blog/llama2#how-to-prompt-llama-2
+#     <s>[INST] <<SYS>>
+#     {{ system_prompt }}
+#     <</SYS>>
 
-    {{ user_msg_1 }} [/INST] {{ model_answer_1 }} </s><s>[INST] {{ user_msg_2 }} [/INST]
+#     {{ user_msg_1 }} [/INST] {{ model_answer_1 }} </s><s>[INST] {{ user_msg_2 }} [/INST]
 
   
 
-    Args:
-        messages (list[dict]): _description_
+#     Args:
+#         messages (list[dict]): _description_
 
-    Returns:
-        str: _description_
-    """
+#     Returns:
+#         str: _description_
+#     """
     
-    result = ""
-    system_msg = "You are a therapist having a counseling with a visitor."
-    result += f"<s>[INST] <<SYS>>\n{system_msg}\n<</SYS>>\n\n"
+#     result = ""
+#     system_msg = "You are a therapist having a counseling with a visitor."
+#     result += f"<s>[INST] <<SYS>>\n{system_msg}\n<</SYS>>\n\n"
     
-    result += "Hi! [/INST] "
-    result += messages[0]["content"] + " </s>"
+#     result += "Hi! [/INST] "
+#     result += messages[0]["content"] + " </s>"
     
-    for msg in messages[1:]:
-        result += f"<s>[INST] {msg['content']} [/INST] " if msg['role'] == "client" else f"{msg['content']} </s>"
+#     for msg in messages[1:]:
+#         result += f"<s>[INST] {msg['content']} [/INST] " if msg['role'] == "client" else f"{msg['content']} </s>"
     
-    return result.strip()
+#     return result.strip()
 
-def generate_dialouge_csv_llama(dialouges: dict, output_path: str, file_name: str = "all_dialogues_formatted_llama") -> None:
-    formatted_dialouge_strings = [format_multiturn_dialogue_llama(dialouge['messages']) for dialouge in dialouges]
+# # Do not use this now, directly use tokenizer.apply_chat_template   
+# def generate_dialouge_csv_llama(dialouges: dict, output_path: str, file_name: str = "all_dialogues_formatted_llama") -> None:
+#     formatted_dialouge_strings = [format_multiturn_dialogue_llama(dialouge['messages']) for dialouge in dialouges]
+#     df = pd.DataFrame(formatted_dialouge_strings, columns=['text'])
+#     df.to_csv(f"{output_path}/{file_name}.csv", index=False)
+
+
+
+def get_llama_trainable_multiturn_messages(messages: list[dict]) -> dict:
+    initial_msg = [{
+        "role": "system",
+        "content": "You are a therapist having a counseling with a visitor. "
+                   "The counselor's replies should incorporate elements of empathy based on the user's descriptions, "
+                  "such as listening, leading, comforting, understanding, trust, acknowledgment, sincerity, and emotional support."
+    },
+    {
+        "role": "user",
+        "content": "Hi"
+    }]
+    for msg in messages:
+        if msg["role"] == "client":
+            msg["role"] = 'user'
+        elif msg["role"] == "counselor":
+            msg["role"] = 'assistant'
+    return initial_msg + messages
+
+
+def generate_llama_template_dialouge_messages(dialouges: dict, output_path: str, file_name: str = "all_dialogues_formatted_llama"):
+    model_name = "NousResearch/Llama-2-7b-chat-hf"
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    all_messages = [dialouge['messages'] for dialouge in dialouges]
+    
+    # save messages list
+    all_messages_string = json.dumps(all_messages, indent=4)
+    with open(f"{output_path}/{file_name}.json", 'w') as f:
+         f.write(all_messages_string)
+    
+    # save csv dataset
+    formatted_dialouge_strings = [tokenizer.apply_chat_template(get_llama_trainable_multiturn_messages(messages), tokenize=False) for messages in all_messages]
     df = pd.DataFrame(formatted_dialouge_strings, columns=['text'])
     df.to_csv(f"{output_path}/{file_name}.csv", index=False)
     
-         
-
-    
+        
 
 
 if __name__ == "__main__":
-    # counsel_chat_data = get_top_chat("../data/counsel_chat_dialogue/20220401_counsel_chat.csv", key="upvotes")
-    # # model = "gpt-4-0125-preview"
-    # model = "gpt-3.5-turbo"
-    # start_row = 0
-    # generate_dialogues(counsel_chat_data.iloc[start_row:],
-    #                    model_name=model,
-    #                    batch_size=10,
-    #                    output_path="../data/test_counsel_chat_dialogue",
-    #                    start_row=start_row)
+    counsel_chat_data = get_top_chat("../data/counsel_chat_dialogue/20220401_counsel_chat.csv", key="upvotes")
+    # model = "gpt-4-0125-preview"
+    model = "gpt-3.5-turbo"
+    start_row = 0
+    generate_dialogues(counsel_chat_data.iloc[start_row:],
+                       model_name=model,
+                       batch_size=10,
+                       output_path="../data/test_counsel_chat_dialogue",
+                       start_row=start_row)
 
-    # # # combine my batch data into a single json file
-    # # combine_json(data_path="../data/counsel_chat_dialogue", file_name="all_dialogue",
-    # #              batch_indices=[0, 100, 200, 300, 500, 863])
+    # # combine my batch data into a single json file
+    # combine_json(data_path="../data/counsel_chat_dialogue", file_name="all_dialogue",
+    #              batch_indices=[0, 100, 200, 300, 500, 863])
     
-    # # dataset validation
-    # with open("../data/counsel_chat_dialogue/all_dialogue.json", "r") as f:
-    #     dialouges = json.load(f)
-    # invalid_index = validate_dialouge_dataset(dialouges)
+    # dataset validation
+    with open("../data/counsel_chat_dialogue/all_dialogue.json", "r") as f:
+        dialouges = json.load(f)
+    invalid_index = validate_dialouge_dataset(dialouges)
     
-    # # clean the invalid dialouge by combining consecutive message into one
-    # dialouges = merge_consecutive_msg(dialouges, invalid_index)  
-    # validate_dialouge_dataset(dialouges)
+    # clean the invalid dialouge by combining consecutive message into one
+    dialouges = merge_consecutive_msg(dialouges, invalid_index)  
+    validate_dialouge_dataset(dialouges)
     
-    # # save it again
-    # json_string = json.dumps(dialouges, indent=4)
-    # with open("../data/counsel_chat_dialogue/all_dialogue_cleaned.json", "w") as f:
-    #     f.write(json_string)
+    # save cleaned dialouge dataset
+    json_string = json.dumps(dialouges, indent=4)
+    with open("../data/counsel_chat_dialogue/all_dialogue_cleaned.json", "w") as f:
+        f.write(json_string)
         
     # generate llama trainable dataset
     with open("../data/counsel_chat_dialogue/all_dialogue_cleaned.json", "r") as f:
         dialouges = json.load(f)
-    generate_dialouge_csv_llama(dialouges, output_path="../data/counsel_chat_dialogue", file_name="all_dialogue_formatted_llama")
+    generate_llama_template_dialouge_messages(dialouges, output_path="../data/counsel_chat_dialogue", file_name="all_dialogue_formatted_llama")
+    
     
