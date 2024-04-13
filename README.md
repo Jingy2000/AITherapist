@@ -18,12 +18,12 @@ All of your local models are automatically served on `localhost:11434`. Run `oll
 ## Run
 run this app with CUDA devices:
 ```
-docker compose -f docker-compose-gpu.yml up --build
+docker compose -f docker-compose-gpu.yml up -d --build
 ```
 
 run this app without CUDA devices:
 ```
-docker compose -f docker-compose-cpu.yml up --build
+docker compose -f docker-compose-cpu.yml up -d --build
 ```
 stop this app without delete docker volumes:
 ```
