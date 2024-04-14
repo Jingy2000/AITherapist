@@ -1,0 +1,5 @@
+# training notes
+
+- use tokenizer.apply_chat_template instead of manually writing a format string function
+- You MUST NOT assign padding token to be same as the end of sentence (eos) token, because it will cause problem for multi-turn conversation data (eos appears in multi places, confusing the model). We should assign pad as '<pad>' and add it into the tokenizer if it doesn't exist. As mentioned in this artical https://medium.com/@xuebinbin12/fine-tuning-chat-based-llm-with-multi-turn-conversational-data-part-i-d8c64d01a20d
+- We should load data collator whnen training multi turn conversations. And we should be careful about the response_template and instruction_template. Those two parameters decide how to calculate the loss, which parts are target labels. This is really import to make the model label the correct token in multi-turn conversation training. See here, https://huggingface.co/docs/trl/sft_trainer#using-tokenids-directly-for-responsetemplate
