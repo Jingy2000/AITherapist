@@ -168,6 +168,18 @@ with st.sidebar:
                         st.warning('Please enter your valid OpenAI API key!', icon='⚠')
                         ss.model_is_ready = False
 
+    with st.form("new conversation"):
+        st.header("New Conversation")
+        if st.form_submit_button("Start"):
+            if not 'model_is_ready' in ss or not ss.model_is_ready:
+                st.warning("Please set up the configuration")
+            else:
+                ss.initiate_conversation = True
+                if "selected_chat_history" in ss:
+                    del ss.selected_chat_history
+                if "chat_messages" in ss:
+                    del ss.chat_messages
+
     with st.form("history"):
         st.header("Chat history")
         chat_history_in_db = get_all_conversations()
@@ -175,17 +187,24 @@ with st.sidebar:
                                         for conversation in chat_history_in_db]
         selected_item = st.selectbox("Chat history:", chat_history_start_time_list)
 
-        if st.form_submit_button("Confirm"):
-            ss.current_conversation_id = selected_item
-            ss.selected_chat_history = get_conversation_messages(selected_item)
-            if "chat_messages" in ss:
-                del ss.chat_messages
-            st.write(f"You selected {selected_item}")
+        if st.form_submit_button("Confirm",
+                                 disabled=(selected_item==None)):
+            if not 'model_is_ready' in ss or not ss.model_is_ready:
+                st.warning("Please set up the configuration")
+            else:
+                ss.current_conversation_id = selected_item
+                ss.selected_chat_history = get_conversation_messages(selected_item)
+                if "chat_messages" in ss:
+                    del ss.chat_messages
+                if "initiate_conversation" in ss:
+                    del ss.initiate_conversation
+                ss.initiate_conversation = False
+                st.write(f"You selected {selected_item}")
             
 
 st.divider()
 
-if not 'model_is_ready' in ss or not ss.model_is_ready:
+if "initiate_conversation" not in ss and "selected_chat_history" not in ss:
     st.markdown("An AI-powered therapy application designed to be your virtual companion "
                 "on your journey toward better mental well-being. "
                   "Built with advanced natural language processing and machine learning algorithms, "
@@ -208,13 +227,15 @@ if 'selected_chat_history' in ss:
                 msgs.add_ai_message(msg_history.message)
             elif msg_history.role == "human":
                 msgs.add_user_message(msg_history.message)
-
-if len(msgs.messages) == 0:
-    ss.current_conversation_id = start_conversation()
-    msgs.add_ai_message("Hi, how are you doing today!")
-    store_message(conversation_id=ss.current_conversation_id,
-                  message=msgs.messages[-1].content,
-                  role="ai",)
+elif "initiate_conversation" in ss:
+    if len(msgs.messages) == 0:
+        ss.current_conversation_id = start_conversation()
+        msgs.add_ai_message("Hi, how are you doing today!")
+        store_message(conversation_id=ss.current_conversation_id,
+                      message=msgs.messages[-1].content,
+                      role="ai",)
+else:
+    st.stop()
 
 # Set up the LangChain, passing in Message History
 prompt = ChatPromptTemplate.from_messages(
