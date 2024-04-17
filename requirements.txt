@@ -3,7 +3,7 @@ langchain
 langchain-openai
 openai
 peft
-transformers
+transformers==4.31
 bitsandbytes
 trl
 accelerate
