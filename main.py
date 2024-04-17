@@ -118,7 +118,7 @@ with st.sidebar:
         st.divider()
         model = st.selectbox(
             "Model", 
-            options=("gpt-3.5-turbo", "llama2", "mistral"),
+            options=("gpt-3.5-turbo", "llama2-ft", "llama2", "mistral"),
             index=0,
             )
         openai_api_key = st.text_input(
@@ -131,11 +131,11 @@ with st.sidebar:
         if st.form_submit_button("Submit"):
             ss.model_config = {
                 "openai_api_key": openai_api_key,
-                "model": model,
+                "model": model if model!="llama2-ft" else "junyao/llama2-ft-4bit",
                 "temperature": temperature,
             }
 
-            if ss.model_config['model'] in ["llama2", "mistral"]:
+            if ss.model_config['model'] in ["llama2", "mistral", "junyao/llama2-ft-4bit"]:
                 with st.spinner(text="Loading model ..."):
                     response = send_post_request(ss.model_config['model'])
                     if response.ok and response.json()['status'] == 'success':
@@ -253,8 +253,8 @@ prompt = ChatPromptTemplate.from_messages(
 if ss.model_config['model'] == "gpt-3.5-turbo":
     chain = prompt | ChatOpenAI(temperature=ss.model_config['temperature'],
                                 api_key=ss.model_config['openai_api_key'])
-elif ss.model_config['model'] in ["llama2", "mistral"]:
-    if ss.model_config['model'] == "llama2":
+elif ss.model_config['model'] in ["llama2", "mistral", "junyao/llama2-ft-4bit"]:
+    if ss.model_config['model'] != "mistral":
         stop_tokens = ["[INST]", "[/INST]", "<<SYS>>", "<</SYS>>"]
     else:
         stop_tokens = ["[INST]", "[/INST]"]
