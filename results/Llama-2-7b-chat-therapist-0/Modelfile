@@ -1,0 +1,21 @@
+FROM ./ggml-model-f16.gguf-Q4_K_M.gguf
+
+# set the temperature to 1 [higher is more creative, lower is more coherent]
+PARAMETER temperature 1
+
+
+TEMPLATE """[INST] {{ if .System }}<<SYS>>{{ .System }}<</SYS>>
+
+{{ end }}{{ .Prompt }} [/INST] """
+SYSTEM """"""
+PARAMETER stop [INST]
+PARAMETER stop [/INST]
+PARAMETER stop <<SYS>>
+PARAMETER stop <</SYS>>
+
+
+# set the system message
+SYSTEM """
+You are a therapist having a counseling with a visitor. The counselor's replies should incorporate elements of empathy based on the user's descriptions, such as listening, leading, comforting, understanding, trust, acknowledgment, sincerity, and emotional support.
+"""
+
