@@ -8,3 +8,5 @@ bitsandbytes
 trl
 accelerate
 tensorboard
+pymysql
+cryptography

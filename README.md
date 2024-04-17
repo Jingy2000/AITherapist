@@ -1,6 +1,6 @@
 # AITherapist
 
-## Setup
+<!-- ## Setup
 
 `pip install -r requirements.txt`
 
@@ -13,4 +13,24 @@ All of your local models are automatically served on `localhost:11434`. Run `oll
 
 ## Run
 
-`streamlit run main.py`
+`streamlit run main.py` -->
+
+## Run
+run this app with CUDA devices:
+```
+docker compose -f docker-compose-gpu.yml up -d --build
+```
+
+run this app without CUDA devices:
+```
+docker compose -f docker-compose-cpu.yml up -d --build
+```
+stop this app without delete docker volumes:
+```
+docker compose -f docker-compose-gpu.yml down
+```
+or
+```
+docker compose -f docker-compose-cpu.yml down
+```
+when necessary to delete the volume containing chat history, use flag *--volumes*. Please note this will also remove the volume containing ollama's local models.
