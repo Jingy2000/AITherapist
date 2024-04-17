@@ -15,12 +15,12 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_community.chat_models import ChatOllama
 from langchain_community.chat_message_histories.streamlit import StreamlitChatMessageHistory
 
-
 # SQL database
 db_user = os.getenv('MYSQL_USER')
 db_password = os.getenv('MYSQL_PASSWORD')
 db_host = os.getenv('MYSQL_HOST')
 db_name = os.getenv('MYSQL_DB')
+
 
 def create_engine_with_checks(dsn, retries=7, delay=5):
     for _ in range(retries):
@@ -28,20 +28,22 @@ def create_engine_with_checks(dsn, retries=7, delay=5):
             engine = create_engine(dsn)
             with engine.connect() as connection:
                 return engine
-        except OperationalError as e:
+        except OperationalError:
             time.sleep(delay)
-    
+
     return None
+
 
 engine = create_engine_with_checks(dsn=f'mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_name}')
 
-if not engine: 
+if not engine:
     raise Exception("Failed to connect to the database after several attempts.")
 
 Session = sessionmaker(bind=engine)
 session = Session()
 
 Base = declarative_base()
+
 
 class Conversation(Base):
     __tablename__ = 'conversations'
@@ -50,6 +52,7 @@ class Conversation(Base):
 
     # Relationship to link messages to a conversation
     messages = relationship("Message", back_populates="conversation")
+
 
 class Message(Base):
     __tablename__ = 'messages'
@@ -62,11 +65,13 @@ class Message(Base):
     # Relationship to link a message back to its conversation
     conversation = relationship("Conversation", back_populates="messages")
 
+
 def start_conversation():
     new_conversation = Conversation()
     session.add(new_conversation)
     session.commit()
     return new_conversation.id
+
 
 def store_message(conversation_id, message, role):
     new_message = Message(
@@ -78,18 +83,21 @@ def store_message(conversation_id, message, role):
     session.add(new_message)
     session.commit()
 
+
 def get_conversation_messages(conversation_id):
     messages = session.query(
         Message
-        ).filter_by(
-            conversation_id=conversation_id
-            ).order_by(
-                Message.timestamp
-                ).all()
+    ).filter_by(
+        conversation_id=conversation_id
+    ).order_by(
+        Message.timestamp
+    ).all()
     return messages
+
 
 def get_all_conversations():
     return session.query(Conversation).all()
+
 
 Base.metadata.create_all(engine)
 
@@ -98,11 +106,12 @@ st.set_page_config(
     page_title="AI Therapist",
     page_icon=":coffee:",
     initial_sidebar_state="auto"
-    )
+)
 st.markdown("<h2 style='text-align:left;font-family:Georgia'>Your AI Therapist</h2>",
             unsafe_allow_html=True)
 
 ss = st.session_state
+
 
 def send_post_request(local_model_name: str):
     url = "http://ollama:11434/api/pull"
@@ -112,20 +121,21 @@ def send_post_request(local_model_name: str):
     response = requests.post(url, json=data)
     return response
 
+
 with st.sidebar:
     with st.form("config"):
         st.header("Configuration")
         st.divider()
         model = st.selectbox(
-            "Model", 
+            "Model",
             options=("gpt-3.5-turbo", "llama2", "mistral"),
             index=0,
-            )
+        )
         openai_api_key = st.text_input(
             "Your OpenAI API key",
             placeholder="only for gpt-3.5-turbo",
             type="password",
-            )
+        )
         temperature = st.slider("Temperature", 0.0, 2.0, 0.0, 0.1, format="%.1f")
 
         if st.form_submit_button("Submit"):
@@ -160,8 +170,8 @@ with st.sidebar:
                 else:
                     try:
                         response = ChatOpenAI(temperature=0,
-                                            max_tokens=2,
-                                            api_key=openai_api_key).invoke("Hello")
+                                              max_tokens=2,
+                                              api_key=openai_api_key).invoke("Hello")
                         st.success('Model Loaded!')
                         ss.model_is_ready = True
                     except Exception as e:
@@ -188,7 +198,7 @@ with st.sidebar:
         selected_item = st.selectbox("Chat history:", chat_history_start_time_list)
 
         if st.form_submit_button("Confirm",
-                                 disabled=(selected_item==None)):
+                                 disabled=(selected_item == None)):
             if not 'model_is_ready' in ss or not ss.model_is_ready:
                 st.warning("Please set up the configuration")
             else:
@@ -200,23 +210,21 @@ with st.sidebar:
                     del ss.initiate_conversation
                 ss.initiate_conversation = False
                 st.write(f"You selected {selected_item}")
-            
 
 st.divider()
 
 if "initiate_conversation" not in ss and "selected_chat_history" not in ss:
     st.markdown("An AI-powered therapy application designed to be your virtual companion "
                 "on your journey toward better mental well-being. "
-                  "Built with advanced natural language processing and machine learning algorithms, "
-                  "AI Therapist provides a safe, non-judgmental space for you "
-                  "to express your thoughts, concerns, and emotions.")
+                "Built with advanced natural language processing and machine learning algorithms, "
+                "AI Therapist provides a safe, non-judgmental space for you "
+                "to express your thoughts, concerns, and emotions.")
     st.markdown("Our AI therapist is trained to actively listen, empathize, "
                 "and provide personalized insights and coping strategies tailored to your unique situation. "
                 "Whether you're dealing with anxiety, depression, relationship issues, "
                 "or simply seeking self-improvement, "
                 "AI Therapist is here to support you every step of the way.")
     st.stop()
-
 
 msgs = StreamlitChatMessageHistory(key="chat_messages")
 
@@ -233,7 +241,7 @@ elif "initiate_conversation" in ss:
         msgs.add_ai_message("Hi, how are you doing today!")
         store_message(conversation_id=ss.current_conversation_id,
                       message=msgs.messages[-1].content,
-                      role="ai",)
+                      role="ai", )
 else:
     st.stop()
 
@@ -241,7 +249,7 @@ else:
 prompt = ChatPromptTemplate.from_messages(
     [
         ("system", "You are a therapist having a counseling with a visitor. "
-                   "The counselor's replies should incorporate elements of empathy " 
+                   "The counselor's replies should incorporate elements of empathy "
                    "based on the user's descriptions, such as listening, leading, "
                    "comforting, understanding, trust, acknowledgment, "
                    "sincerity, and emotional support."),
@@ -279,8 +287,8 @@ if prompt := st.chat_input():
     st.chat_message("human").write(prompt)
     store_message(conversation_id=ss.current_conversation_id,
                   message=prompt,
-                  role="human",)
-    
+                  role="human", )
+
     config = {"configurable": {"session_id": "any"}}
     response = chain_with_history.stream({"question": prompt}, config)
     st.chat_message("ai").write_stream(response)
