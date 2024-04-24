@@ -1,19 +1,19 @@
-import os, time
+import os
 import requests
 import streamlit as st
-from datetime import datetime
-from sqlalchemy.exc import OperationalError
-from sqlalchemy import (create_engine, Column, Integer,
-                        String, DateTime, Enum, ForeignKey)
-from sqlalchemy.orm import (sessionmaker,
-                            relationship,
-                            declarative_base)
 
 from langchain_openai import ChatOpenAI
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_community.chat_models import ChatOllama
 from langchain_community.chat_message_histories.streamlit import StreamlitChatMessageHistory
+
+from database import (create_engine_with_checks,
+                      get_all_conversations,
+                      create_session,
+                      get_conversation_messages,
+                      start_conversation,
+                      store_message)
 
 
 # SQL database
@@ -22,76 +22,12 @@ db_password = os.getenv('MYSQL_PASSWORD')
 db_host = os.getenv('MYSQL_HOST')
 db_name = os.getenv('MYSQL_DB')
 
-def create_engine_with_checks(dsn, retries=7, delay=5):
-    for _ in range(retries):
-        try:
-            engine = create_engine(dsn)
-            with engine.connect() as connection:
-                return engine
-        except OperationalError as e:
-            time.sleep(delay)
-    
-    return None
+db_engine = create_engine_with_checks(dsn=f'mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_name}')
 
-engine = create_engine_with_checks(dsn=f'mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_name}')
+if not db_engine: 
+        raise Exception("Failed to connect to the database after several attempts.")
 
-if not engine: 
-    raise Exception("Failed to connect to the database after several attempts.")
-
-Session = sessionmaker(bind=engine)
-session = Session()
-
-Base = declarative_base()
-
-class Conversation(Base):
-    __tablename__ = 'conversations'
-    id = Column(Integer, primary_key=True)
-    start_time = Column(DateTime, default=datetime.now())
-
-    # Relationship to link messages to a conversation
-    messages = relationship("Message", back_populates="conversation")
-
-class Message(Base):
-    __tablename__ = 'messages'
-    id = Column(Integer, primary_key=True)
-    conversation_id = Column(Integer, ForeignKey('conversations.id'))
-    message = Column(String(2048))
-    timestamp = Column(DateTime, default=datetime.now())
-    role = Column(Enum('human', 'ai', name='role_types'))
-
-    # Relationship to link a message back to its conversation
-    conversation = relationship("Conversation", back_populates="messages")
-
-def start_conversation():
-    new_conversation = Conversation()
-    session.add(new_conversation)
-    session.commit()
-    return new_conversation.id
-
-def store_message(conversation_id, message, role):
-    new_message = Message(
-        conversation_id=conversation_id,
-        message=message,
-        role=role,
-        timestamp=datetime.now()
-    )
-    session.add(new_message)
-    session.commit()
-
-def get_conversation_messages(conversation_id):
-    messages = session.query(
-        Message
-        ).filter_by(
-            conversation_id=conversation_id
-            ).order_by(
-                Message.timestamp
-                ).all()
-    return messages
-
-def get_all_conversations():
-    return session.query(Conversation).all()
-
-Base.metadata.create_all(engine)
+db_session = create_session(engine=db_engine)
 
 # Webpage rendering
 st.set_page_config(
@@ -182,7 +118,7 @@ with st.sidebar:
 
     with st.form("history"):
         st.header("Chat history")
-        chat_history_in_db = get_all_conversations()
+        chat_history_in_db = get_all_conversations(session=db_session)
         chat_history_start_time_list = [conversation.id
                                         for conversation in chat_history_in_db]
         selected_item = st.selectbox("Chat history:", chat_history_start_time_list)
@@ -193,7 +129,8 @@ with st.sidebar:
                 st.warning("Please set up the configuration")
             else:
                 ss.current_conversation_id = selected_item
-                ss.selected_chat_history = get_conversation_messages(selected_item)
+                ss.selected_chat_history = get_conversation_messages(session=db_session,
+                                                                     conversation_id=selected_item)
                 if "chat_messages" in ss:
                     del ss.chat_messages
                 if "initiate_conversation" in ss:
@@ -229,9 +166,10 @@ if 'selected_chat_history' in ss:
                 msgs.add_user_message(msg_history.message)
 elif "initiate_conversation" in ss:
     if len(msgs.messages) == 0:
-        ss.current_conversation_id = start_conversation()
+        ss.current_conversation_id = start_conversation(session=db_session)
         msgs.add_ai_message("Hi, how are you doing today!")
-        store_message(conversation_id=ss.current_conversation_id,
+        store_message(session=db_session,
+                      conversation_id=ss.current_conversation_id,
                       message=msgs.messages[-1].content,
                       role="ai",)
 else:
@@ -277,13 +215,15 @@ for msg in msgs.messages:
 # If user inputs a new prompt, generate and draw a new response
 if prompt := st.chat_input():
     st.chat_message("human").write(prompt)
-    store_message(conversation_id=ss.current_conversation_id,
+    store_message(session=db_session,
+                  conversation_id=ss.current_conversation_id,
                   message=prompt,
                   role="human",)
     
     config = {"configurable": {"session_id": "any"}}
     response = chain_with_history.stream({"question": prompt}, config)
     st.chat_message("ai").write_stream(response)
-    store_message(conversation_id=ss.current_conversation_id,
+    store_message(session=db_session,
+                  conversation_id=ss.current_conversation_id,
                   message=msgs.messages[-1].content,
                   role="ai")
