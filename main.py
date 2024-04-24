@@ -14,6 +14,7 @@ from database import (create_engine_with_checks,
                       get_conversation_messages,
                       start_conversation,
                       store_message)
+from restful_ollama import send_post_request
 
 
 # SQL database
@@ -39,14 +40,6 @@ st.markdown("<h2 style='text-align:left;font-family:Georgia'>Your AI Therapist</
             unsafe_allow_html=True)
 
 ss = st.session_state
-
-def send_post_request(local_model_name: str):
-    url = "http://ollama:11434/api/pull"
-    data = {"name": local_model_name,
-            "stream": False,
-            }
-    response = requests.post(url, json=data)
-    return response
 
 with st.sidebar:
     with st.form("config"):
