@@ -47,12 +47,12 @@ with st.sidebar:
         st.divider()
         model = st.selectbox(
             "Model", 
-            options=("gpt-3.5-turbo", "llama2-ft", "llama2", "mistral"),
+            options=("gpt-3.5-turbo", "gpt-4", "llama2-ft", "llama2", "mistral", "llama3"),
             index=0,
             )
         openai_api_key = st.text_input(
             "Your OpenAI API key",
-            placeholder="only for gpt-3.5-turbo",
+            placeholder="only for gpt-3.5-turbo and gpt-4",
             type="password",
             )
         temperature = st.slider("Temperature", 0.0, 2.0, 0.0, 0.1, format="%.1f")
@@ -64,7 +64,7 @@ with st.sidebar:
                 "temperature": temperature,
             }
 
-            if ss.model_config['model'] in ["llama2", "mistral", "junyao/llama2-ft-4bit"]:
+            if ss.model_config['model'] in ["llama2", "mistral", "junyao/llama2-ft-4bit", "llama3"]:
                 with st.spinner(text="Loading model ..."):
                     response = send_post_request(ss.model_config['model'])
                     if response.ok and response.json()['status'] == 'success':
@@ -74,7 +74,7 @@ with st.sidebar:
                         st.error('This is an error', icon="🚨")
                         ss.model_is_raedy = False
 
-            if ss.model_config['model'] == "gpt-3.5-turbo":
+            if ss.model_config['model'] in ["gpt-3.5-turbo", "gpt-4"]:
                 # Get an OpenAI API Key before continuing
                 # Attempt to retrieve API key from secrets
                 try:
@@ -181,14 +181,19 @@ prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-if ss.model_config['model'] == "gpt-3.5-turbo":
+if ss.model_config['model'] in ["gpt-3.5-turbo", "gpt-4"]:
     chain = prompt | ChatOpenAI(temperature=ss.model_config['temperature'],
                                 api_key=ss.model_config['openai_api_key'])
-elif ss.model_config['model'] in ["llama2", "mistral", "junyao/llama2-ft-4bit"]:
-    if ss.model_config['model'] != "mistral":
-        stop_tokens = ["[INST]", "[/INST]", "<<SYS>>", "<</SYS>>"]
-    else:
+elif ss.model_config['model'] in ["llama2", "mistral", "junyao/llama2-ft-4bit", "llama3"]:
+    if ss.model_config['model'] == "mistral":
         stop_tokens = ["[INST]", "[/INST]"]
+    elif ss.model_config['model'] == "llama3":
+        stop_tokens = ["<|start_header_id|>",
+                       "<|end_header_id|>",
+                       "<|eot_id|>"]
+    else:
+        stop_tokens = ["[INST]", "[/INST]", "<<SYS>>", "<</SYS>>"]
+    
     chain = prompt | ChatOllama(model=ss.model_config['model'],
                                 base_url='http://ollama:11434',
                                 stop=stop_tokens,
