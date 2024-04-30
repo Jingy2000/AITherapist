@@ -176,7 +176,9 @@ prompt = ChatPromptTemplate.from_messages(
          "Listen actively, lead the conversation gently towards solutions, "
          "provide comfort, and affirm the user's feelings. "
          "Acknowledge what the user says, respond with sincerity, and offer emotional support. "
-         "Avoid using any special formatting or characters in your responses, such as asterisks or symbols. "
+         "Avoid using any special formatting or characters in your responses, such as asterisks or symbols, "
+         "and refrain from repeating phrases like 'I see' or other common responses. "
+         "Strive for variety in your language to more effectively engage and support the visitor. "
          "Focus on clear, concise, and supportive language that directly addresses the user's concerns."
          ),
         MessagesPlaceholder(variable_name="history"),
