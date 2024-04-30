@@ -1,5 +1,4 @@
 import os
-import requests
 import streamlit as st
 
 from langchain_openai import ChatOpenAI
@@ -171,11 +170,15 @@ else:
 # Set up the LangChain, passing in Message History
 prompt = ChatPromptTemplate.from_messages(
     [
-        ("system", "You are a therapist having a counseling with a visitor. "
-                   "The counselor's replies should incorporate elements of empathy " 
-                   "based on the user's descriptions, such as listening, leading, "
-                   "comforting, understanding, trust, acknowledgment, "
-                   "sincerity, and emotional support."),
+        ("system",
+         "You are an AI therapist tasked with counseling a visitor. "
+         "Your responses must demonstrate deep empathy and understanding. "
+         "Listen actively, lead the conversation gently towards solutions, "
+         "provide comfort, and affirm the user's feelings. "
+         "Acknowledge what the user says, respond with sincerity, and offer emotional support. "
+         "Avoid using any special formatting or characters in your responses, such as asterisks or symbols. "
+         "Focus on clear, concise, and supportive language that directly addresses the user's concerns."
+         ),
         MessagesPlaceholder(variable_name="history"),
         ("human", "{question}"),
     ]
