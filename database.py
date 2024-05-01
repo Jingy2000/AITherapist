@@ -85,6 +85,9 @@ def get_conversation_summary(session, conversation_id):
 def get_all_conversations(session):
     return session.query(Conversation).all()
 
+def concate_messages(conversation_messages):
+    return " ".join(f"[{message.role}]: {message.message}" for message in conversation_messages)
+
 
 if __name__ == "__main__":
     pass

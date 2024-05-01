@@ -8,6 +8,7 @@ from database import (start_conversation,
                       get_all_conversations,
                       store_summary,
                       get_conversation_summary,
+                      concate_messages,
                       )
 
 
@@ -53,6 +54,18 @@ class TestDatabaseOperations(unittest.TestCase):
         store_summary(self.session, conv_id, summary_text)
         retrieved_summary = get_conversation_summary(self.session, conv_id)
         self.assertEqual(retrieved_summary, summary_text, "The retrieved summary should match the stored summary.")
+    
+    def test_concat_messages(self):
+        """Test the concatenation of messages."""
+        conversation_id = start_conversation(self.session)
+        store_message(self.session, conversation_id, "How have you been feeling this week?", "ai")
+        store_message(self.session, conversation_id, "I've been feeling anxious about work.", "human")
+        store_message(self.session, conversation_id, "Have you tried any relaxation techniques?", "ai")
+        messages = get_conversation_messages(self.session, conversation_id)
+        
+        result = concate_messages(messages)
+        expected_result = "[ai]: How have you been feeling this week? [human]: I've been feeling anxious about work. [ai]: Have you tried any relaxation techniques?"
+        self.assertEqual(result, expected_result, "The concatenated messages should match the expected format.")
 
 
 if __name__ == '__main__':
