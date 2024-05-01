@@ -52,7 +52,12 @@ with st.sidebar:
         st.divider()
         model = st.selectbox(
             "Model", 
-            options=("gpt-3.5-turbo", "gpt-4", "llama2-ft", "llama2", "mistral", "llama3"),
+            options=("gpt-3.5-turbo",
+                     "gpt-4",
+                     "llama2-ft",
+                     "llama2",
+                     "mistral",
+                     "llama3"),
             index=0,
             )
         openai_api_key = st.text_input(
@@ -123,7 +128,8 @@ with st.sidebar:
         chat_history_in_db = get_all_conversations(session=db_session)
         chat_history_start_time_list = [conversation.id
                                         for conversation in chat_history_in_db]
-        selected_item = st.selectbox("Chat history:", chat_history_start_time_list)
+        selected_item = st.selectbox("Chat history:",
+                                     chat_history_start_time_list)
 
         if st.form_submit_button("Confirm",
                                  disabled=(selected_item==None)):
@@ -131,8 +137,9 @@ with st.sidebar:
                 st.warning("Please set up the configuration")
             else:
                 ss.current_conversation_id = selected_item
-                ss.selected_chat_history = get_conversation_messages(session=db_session,
-                                                                     conversation_id=selected_item)
+                ss.selected_chat_history = get_conversation_messages(
+                    session=db_session,
+                    conversation_id=selected_item)
                 if "chat_messages" in ss:
                     del ss.chat_messages
                 if "initiate_conversation" in ss:
@@ -187,13 +194,17 @@ elif ss.model_config['model'] in ["llama2",
                                   "junyao/llama2-ft-4bit",
                                   "llama3"]:
     if ss.model_config['model'] == "mistral":
-        stop_tokens = ["[INST]", "[/INST]"]
+        stop_tokens = ["[INST]",
+                       "[/INST]"]
     elif ss.model_config['model'] == "llama3":
         stop_tokens = ["<|start_header_id|>",
                        "<|end_header_id|>",
                        "<|eot_id|>"]
     else:
-        stop_tokens = ["[INST]", "[/INST]", "<<SYS>>", "<</SYS>>"]
+        stop_tokens = ["[INST]",
+                       "[/INST]",
+                       "<<SYS>>",
+                       "<</SYS>>"]
     
     chain = prompt | ChatOllama(model=ss.model_config['model'],
                                 base_url='http://ollama:11434',
@@ -220,7 +231,8 @@ if prompt := st.chat_input():
                   role="human",)
     
     config = {"configurable": {"session_id": "any"}}
-    response = chain_with_history.stream({"question": prompt}, config)
+    response = chain_with_history.stream({"question": prompt},
+                                         config)
     st.chat_message("ai").write_stream(response)
     store_message(session=db_session,
                   conversation_id=ss.current_conversation_id,
