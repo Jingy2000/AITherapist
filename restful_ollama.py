@@ -12,7 +12,8 @@ def pull(local_model_name: str):
 def generate(local_model_name: str, prompt: str):
     url = "http://localhost:11434/api/generate"
     data = {"model": local_model_name,
-            "prompt": prompt
+            "prompt": prompt,
+            "stream": False
             }
     response = requests.post(url, json=data)
     return response
