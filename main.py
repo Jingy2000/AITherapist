@@ -1,5 +1,4 @@
 import os
-import requests
 import streamlit as st
 
 from langchain_openai import ChatOpenAI
@@ -13,7 +12,10 @@ from database import (create_engine_with_checks,
                       create_session,
                       get_conversation_messages,
                       start_conversation,
-                      store_message)
+                      store_message,
+                      get_conversation_summary,
+                      store_summary,
+                      )
 from restful_ollama import send_post_request
 
 
