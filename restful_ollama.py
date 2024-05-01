@@ -1,10 +1,18 @@
 import requests
 
 
-def send_post_request(local_model_name: str):
+def pull(local_model_name: str):
     url = "http://ollama:11434/api/pull"
     data = {"name": local_model_name,
             "stream": False,
+            }
+    response = requests.post(url, json=data)
+    return response
+
+def generate(local_model_name: str, prompt: str):
+    url = "http://localhost:11434/api/generate"
+    data = {"model": local_model_name,
+            "prompt": prompt
             }
     response = requests.post(url, json=data)
     return response

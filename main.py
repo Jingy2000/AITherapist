@@ -16,7 +16,8 @@ from database import (create_engine_with_checks,
                       get_conversation_summary,
                       store_summary,
                       )
-from restful_ollama import send_post_request
+from restful_ollama import pull, generate
+import prompts
 
 
 # SQL database
@@ -68,7 +69,7 @@ with st.sidebar:
 
             if ss.model_config['model'] in ["llama2", "mistral", "junyao/llama2-ft-4bit", "llama3"]:
                 with st.spinner(text="Loading model ..."):
-                    response = send_post_request(ss.model_config['model'])
+                    response = pull(ss.model_config['model'])
                     if response.ok and response.json()['status'] == 'success':
                         st.success('Model Loaded!')
                         ss.model_is_ready = True
@@ -173,11 +174,7 @@ else:
 # Set up the LangChain, passing in Message History
 prompt = ChatPromptTemplate.from_messages(
     [
-        ("system", "You are a therapist having a counseling with a visitor. "
-                   "The counselor's replies should incorporate elements of empathy " 
-                   "based on the user's descriptions, such as listening, leading, "
-                   "comforting, understanding, trust, acknowledgment, "
-                   "sincerity, and emotional support."),
+        ("system", prompts.SYSTEM_PROMPT),
         MessagesPlaceholder(variable_name="history"),
         ("human", "{question}"),
     ]

@@ -14,4 +14,6 @@ COPY ./database.py .
 
 COPY ./restful_ollama.py .
 
+COPY ./prompts.py .
+
 RUN mkdir /app/.streamlit && touch /app/.streamlit/secrets.toml
