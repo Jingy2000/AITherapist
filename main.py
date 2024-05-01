@@ -26,7 +26,9 @@ db_password = os.getenv('MYSQL_PASSWORD')
 db_host = os.getenv('MYSQL_HOST')
 db_name = os.getenv('MYSQL_DB')
 
-db_engine = create_engine_with_checks(dsn=f'mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_name}')
+db_engine = create_engine_with_checks(
+    dsn=f'mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_name}'
+    )
 
 if not db_engine: 
         raise Exception("Failed to connect to the database after several attempts.")
@@ -67,7 +69,10 @@ with st.sidebar:
                 "temperature": temperature,
             }
 
-            if ss.model_config['model'] in ["llama2", "mistral", "junyao/llama2-ft-4bit", "llama3"]:
+            if ss.model_config['model'] in ["llama2",
+                                            "mistral",
+                                            "junyao/llama2-ft-4bit",
+                                            "llama3"]:
                 with st.spinner(text="Loading model ..."):
                     response = pull(ss.model_config['model'])
                     if response.ok and response.json()['status'] == 'success':
@@ -77,7 +82,8 @@ with st.sidebar:
                         st.error('This is an error', icon="🚨")
                         ss.model_is_raedy = False
 
-            if ss.model_config['model'] in ["gpt-3.5-turbo", "gpt-4"]:
+            if ss.model_config['model'] in ["gpt-3.5-turbo",
+                                            "gpt-4"]:
                 # Get an OpenAI API Key before continuing
                 # Attempt to retrieve API key from secrets
                 try:
@@ -138,16 +144,8 @@ with st.sidebar:
 st.divider()
 
 if "initiate_conversation" not in ss and "selected_chat_history" not in ss:
-    st.markdown("An AI-powered therapy application designed to be your virtual companion "
-                "on your journey toward better mental well-being. "
-                  "Built with advanced natural language processing and machine learning algorithms, "
-                  "AI Therapist provides a safe, non-judgmental space for you "
-                  "to express your thoughts, concerns, and emotions.")
-    st.markdown("Our AI therapist is trained to actively listen, empathize, "
-                "and provide personalized insights and coping strategies tailored to your unique situation. "
-                "Whether you're dealing with anxiety, depression, relationship issues, "
-                "or simply seeking self-improvement, "
-                "AI Therapist is here to support you every step of the way.")
+    st.markdown(prompts.INTRO_1)
+    st.markdown(prompts.INTRO_2)
     st.stop()
 
 
@@ -180,10 +178,14 @@ prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-if ss.model_config['model'] in ["gpt-3.5-turbo", "gpt-4"]:
+if ss.model_config['model'] in ["gpt-3.5-turbo",
+                                "gpt-4"]:
     chain = prompt | ChatOpenAI(temperature=ss.model_config['temperature'],
                                 api_key=ss.model_config['openai_api_key'])
-elif ss.model_config['model'] in ["llama2", "mistral", "junyao/llama2-ft-4bit", "llama3"]:
+elif ss.model_config['model'] in ["llama2",
+                                  "mistral",
+                                  "junyao/llama2-ft-4bit",
+                                  "llama3"]:
     if ss.model_config['model'] == "mistral":
         stop_tokens = ["[INST]", "[/INST]"]
     elif ss.model_config['model'] == "llama3":
