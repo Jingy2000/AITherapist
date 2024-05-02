@@ -1,49 +1,113 @@
 # AITherapist
+This is the repository for **AI Therapist** Chatbot providing a safe, non-judgmental space to express thoughts, concerns, and emotions.
 
-<!-- ## Setup
+## Setup Guide
+This guide will help you set up the application on your machine. Ensure you have the latest version of Docker installed on your system. The application is compatible with macOS, Linux, and Windows Subsystem for Linux (WSL).
 
-`pip install -r requirements.txt`
+### Prerequisites:
+- **Docker**: Make sure Docker is up-to-date on your machine.
 
-To use local models, you need to [download Ollama from here](https://ollama.com/download). After this, run
+### Download from Github
+    git clone https://github.com/Jingy2000/AITherapist.git
 
-`ollama run llama2`
+### Installation Notes:
+1. **MacOS Compatibility**:  
+Users with MacOS devices that use M1, M2, or M3 chips should note that this application cannot utilize the mps backend for computation acceleration. This limitation is due to Docker operating as a virtual machine on MacOS, which does not support GPU-like hardware passthrough.
+2. **CUDA Device Support**:  
+The application supports CUDA devices. For optimal performance, ensure that your device has at least 6GB of available memory. Note that memory usage might increase if extended conversations are processed.
+3. **Model Management**:
+    - Initial Download:  
+    Upon first selection, the application will automatically download the chosen models.
+    - Storage:  
+    All downloaded models are stored in a dedicated Docker volume. This ensures that models persist across application restarts and updates.
+    - Size Considerations:  
+    Each model requires approximately 4.7GB of storage space.
+4. To use the features in this application that rely on OpenAI's models, you will need an API key from OpenAI.
 
-All of your local models are automatically served on `localhost:11434`. Run `ollama run <name-of-model>` to start interacting via the command line directly.
+## Preparing to Run the Application
+Before running the application, you need to navigate to the app directory, which contains all the necessary files for running the application. Use the following command to change to the app directory:
 
+    cd app
 
-## Run
+## Run the Application
+### Run with CUDA Devices
+If you have a CUDA-enabled device and wish to leverage GPU acceleration, use the following command to start the application. This configuration optimizes performance using GPU resources:
 
-`streamlit run main.py` -->
-
-## Run
-1. run this app with CUDA devices:
-    ```
     docker compose -f docker-compose-gpu.yml up --build
-    ```
 
-2. or run this app without CUDA devices:
-    ```
+### Run without CUDA Devices
+For systems without CUDA support, you can run the application using the CPU-only version.
+
     docker compose -f docker-compose-cpu.yml up --build
-    ```
-## Stop
-1. stop this app without delete docker volumes, if you started this app with file *docker-compose-gpu.yml*:
+
+## Stop the Application
+### Regular Shutdown
+To stop the application without removing Docker volumes, use the command corresponding to how you started the application:
+- If started with GPU support:
     ```
     docker compose -f docker-compose-gpu.yml down
     ```
-2. otherwise
+- If started without GPU support:
     ```
     docker compose -f docker-compose-cpu.yml down
     ```
-3. (option) Use flag *--volumes* when necessary to delete the volume containing chat history. Please note this will also remove the volume containing Ollama's downloaded models.
 
-
-## Unit Test
-
-1. SQL database
+### Remove All Volumes
+If you need to delete Docker volumes, which includes all stored data such as chat history and downloaded models, add the --volumes flag. Use this option cautiously as it will permanently delete all data in the volumes:
+-  For GPU configuration:
     ```
+    docker compose -f docker-compose-gpu.yml down --volumes
+    ```
+- For CPU configuration:
+    ```
+    docker compose -f docker-compose-cpu.yml down --volumes
+    ```
+
+### Remove Specific Volumes
+If you only want to remove the volume containing chat history, follow these steps to locate and delete the specific volume:
+1. List All Docker Volumes:  
+Identify the volume associated with chat history, likely named *app_sql-data-db*:
+    ```
+    docker volume ls
+    ```
+2. Remove the Specific Volume:  
+Once you have confirmed the correct volume name, remove it with:
+    ```
+    docker volume remove app_sql-data-db
+    ```
+
+## Unit Tests
+### Prerequisites
+- Ensure that you have the necessary Python environment and dependencies installed to run the tests.
+- Same as mentioned previously, you need to navigate to the app directory:
+    ```
+    cd app
+    ```
+
+### Set Up Python Environment
+Below are the instructions for setting up a virtual environment using **Python 3.11** and installing the required packages.
+- If you prefer using Conda, follow these steps:  
+    - creat a env with python 3.11:
+        ```
+        conda create -n yourenvname python=3.11
+        ```
+    - activate the env:
+        ```
+        conda activate yourenvname
+        ```
+    - install the required packages:
+        ```
+        pip install -r requirements.txt
+        ```
+
+- You also can use Python's venv (the instruction will not be included in this guide)
+
+### SQL Database Operations
+This test verifies that all database operations such as creation, modification, and retrieval are performing correctly.
+
     python test_database_operation.py
-    ```
-2. Ollama
-    ```
+
+### Ollama Connectivity
+This test checks the connectivity by mocking interaction with the Ollama API. Execute the following command:
+
     python test_ollama_connection.py
-    ```
