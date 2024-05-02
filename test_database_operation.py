@@ -1,6 +1,6 @@
 import unittest
 from sqlalchemy import create_engine
-from database import Base, Conversation, Message
+from database import Base, Conversation
 from database import (start_conversation,
                       store_message,
                       get_conversation_messages,
@@ -64,7 +64,8 @@ class TestDatabaseOperations(unittest.TestCase):
         messages = get_conversation_messages(self.session, conversation_id)
         
         result = concate_messages(messages)
-        expected_result = "[ai]: How have you been feeling this week? [human]: I've been feeling anxious about work. [ai]: Have you tried any relaxation techniques?"
+        expected_result = ("[ai]: How have you been feeling this week? [human]: I've been feeling anxious about work. "
+                           "[ai]: Have you tried any relaxation techniques?")
         self.assertEqual(result, expected_result, "The concatenated messages should match the expected format.")
 
 

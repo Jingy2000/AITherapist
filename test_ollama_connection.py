@@ -24,7 +24,7 @@ class TestOllamaAPIRequests(unittest.TestCase):
         # Check the response handling
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {'status': 'success'})
-    
+
     @patch('requests.post')
     def test_generate(self, mock_post):
         mock_post.return_value.status_code = 200
@@ -42,6 +42,7 @@ class TestOllamaAPIRequests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {'result': 'Generated text'})
+
 
 if __name__ == '__main__':
     unittest.main()
