@@ -16,7 +16,9 @@ class TestOllamaAPIRequests(unittest.TestCase):
         # Assertions to check if the request was made correctly
         mock_post.assert_called_once_with(
             'http://ollama:11434/api/pull',
-            json={'name': 'llama2', 'stream': False}
+            json={'name': 'llama2',
+                  'stream': False,
+                  }
         )
 
         # Check the response handling
@@ -32,7 +34,10 @@ class TestOllamaAPIRequests(unittest.TestCase):
 
         mock_post.assert_called_once_with(
             'http://localhost:11434/api/generate',
-            json={'model': 'llama2', 'prompt': 'Please summarize the text.'}
+            json={'model': 'llama2',
+                  'prompt': 'Please summarize the text.',
+                  'stream': False,
+                  }
         )
 
         self.assertEqual(response.status_code, 200)
