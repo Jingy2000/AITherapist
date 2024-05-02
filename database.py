@@ -1,7 +1,7 @@
-import os, time
+import time
 from datetime import datetime
 from sqlalchemy.exc import OperationalError
-from sqlalchemy import (create_engine, Column, Integer,
+from sqlalchemy import (create_engine, Column, Integer, Boolean,
                         String, DateTime, Enum, ForeignKey)
 from sqlalchemy.orm import (sessionmaker,
                             relationship,
@@ -14,6 +14,8 @@ class Conversation(Base):
     __tablename__ = 'conversations'
     id = Column(Integer, primary_key=True)
     start_time = Column(DateTime, default=datetime.now())
+    summary = Column(String(2048))
+    need_summary = Column(Boolean, default=True)
 
     # Relationship to link messages to a conversation
     messages = relationship("Message", back_populates="conversation")
@@ -63,6 +65,11 @@ def store_message(session, conversation_id, message, role):
     session.add(new_message)
     session.commit()
 
+def store_summary(session, conversation_id, summary):
+    conversation = session.query(Conversation).filter_by(id=conversation_id).one()
+    conversation.summary = summary
+    session.commit()
+
 def get_conversation_messages(session, conversation_id):
     messages = session.query(
         Message
@@ -73,8 +80,17 @@ def get_conversation_messages(session, conversation_id):
                 ).all()
     return messages
 
+def get_conversation_summary(session, conversation_id):
+    return session.query(Conversation).filter_by(id=conversation_id).one().summary
+
+def get_summary_status(session, conversation_id):
+    return session.query(Conversation).filter_by(id=conversation_id).one().need_summary
+
 def get_all_conversations(session):
     return session.query(Conversation).all()
+
+def concate_messages(conversation_messages):
+    return " ".join(f"[{message.role}]: {message.message}" for message in conversation_messages)
 
 
 if __name__ == "__main__":
