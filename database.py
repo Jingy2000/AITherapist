@@ -7,8 +7,8 @@ from sqlalchemy.orm import (sessionmaker,
                             relationship,
                             declarative_base)
 
-
 Base = declarative_base()
+
 
 class Conversation(Base):
     __tablename__ = 'conversations'
@@ -19,6 +19,7 @@ class Conversation(Base):
 
     # Relationship to link messages to a conversation
     messages = relationship("Message", back_populates="conversation")
+
 
 class Message(Base):
     __tablename__ = 'messages'
@@ -40,8 +41,9 @@ def create_engine_with_checks(dsn, retries=7, delay=5):
                 return engine
         except OperationalError as e:
             time.sleep(delay)
-    
+
     return None
+
 
 def create_session(engine):
     Session = sessionmaker(bind=engine)
@@ -49,11 +51,13 @@ def create_session(engine):
     Base.metadata.create_all(engine)
     return session
 
+
 def start_conversation(session):
     new_conversation = Conversation()
     session.add(new_conversation)
     session.commit()
     return new_conversation.id
+
 
 def store_message(session, conversation_id, message, role):
     new_message = Message(
@@ -65,29 +69,35 @@ def store_message(session, conversation_id, message, role):
     session.add(new_message)
     session.commit()
 
+
 def store_summary(session, conversation_id, summary):
     conversation = session.query(Conversation).filter_by(id=conversation_id).one()
     conversation.summary = summary
     session.commit()
 
+
 def get_conversation_messages(session, conversation_id):
     messages = session.query(
         Message
-        ).filter_by(
-            conversation_id=conversation_id
-            ).order_by(
-                Message.timestamp
-                ).all()
+    ).filter_by(
+        conversation_id=conversation_id
+    ).order_by(
+        Message.timestamp
+    ).all()
     return messages
+
 
 def get_conversation_summary(session, conversation_id):
     return session.query(Conversation).filter_by(id=conversation_id).one().summary
 
+
 def get_summary_status(session, conversation_id):
     return session.query(Conversation).filter_by(id=conversation_id).one().need_summary
 
+
 def get_all_conversations(session):
     return session.query(Conversation).all()
+
 
 def concate_messages(conversation_messages):
     return " ".join(f"[{message.role}]: {message.message}" for message in conversation_messages)

@@ -18,6 +18,7 @@ Summarize the following therapeutic conversation, highlighting the key issues di
 Ensure the summary is concise and captures the essence of the session without using any direct quotations from the conversation.
 """
 
+
 def get_summary_prompt(conversation_text):
     return f"""{SUMMARIZATION_PROMPT}
     Conversation: {conversation_text}"""

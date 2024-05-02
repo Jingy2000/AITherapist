@@ -20,7 +20,6 @@ from database import (create_engine_with_checks,
 from restful_ollama import pull, generate
 import prompts
 
-
 # SQL database
 db_user = os.getenv('MYSQL_USER')
 db_password = os.getenv('MYSQL_PASSWORD')
@@ -29,10 +28,10 @@ db_name = os.getenv('MYSQL_DB')
 
 db_engine = create_engine_with_checks(
     dsn=f'mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_name}'
-    )
+)
 
-if not db_engine: 
-        raise Exception("Failed to connect to the database after several attempts.")
+if not db_engine:
+    raise Exception("Failed to connect to the database after several attempts.")
 
 db_session = create_session(engine=db_engine)
 
@@ -42,7 +41,7 @@ st.set_page_config(
     page_icon=":coffee:",
     initial_sidebar_state="auto",
     layout='centered'
-    )
+)
 st.markdown("<h2 style='text-align:center;font-family:Georgia'>Your AI Therapist</h2>",
             unsafe_allow_html=True)
 
@@ -53,7 +52,7 @@ with st.sidebar:
         st.header("Configuration")
         st.divider()
         model = st.selectbox(
-            "Model", 
+            "Model",
             options=("gpt-3.5-turbo",
                      "gpt-4",
                      "llama2-ft",
@@ -61,18 +60,18 @@ with st.sidebar:
                      "llama3",
                      "mistral"),
             index=0,
-            )
+        )
         openai_api_key = st.text_input(
             "Your OpenAI API key",
             placeholder="only for gpt-3.5-turbo and gpt-4",
             type="password",
-            )
+        )
         temperature = st.slider("Temperature", 0.0, 2.0, 0.0, 0.1, format="%.1f")
 
         if st.form_submit_button("Submit"):
             ss.model_config = {
                 "openai_api_key": openai_api_key,
-                "model": model if model!="llama2-ft" else "junyao/llama2-ft-4bit",
+                "model": model if model != "llama2-ft" else "junyao/llama2-ft-4bit",
                 "temperature": temperature,
             }
 
@@ -105,8 +104,8 @@ with st.sidebar:
                 else:
                     try:
                         response = ChatOpenAI(temperature=0,
-                                            max_tokens=2,
-                                            api_key=openai_api_key).invoke("Hello")
+                                              max_tokens=2,
+                                              api_key=openai_api_key).invoke("Hello")
                         st.success('Model Loaded!')
                         ss.model_is_ready = True
                     except Exception as e:
@@ -116,7 +115,7 @@ with st.sidebar:
     with st.form("new conversation"):
         st.header("New Conversation")
         if st.form_submit_button("Start"):
-            if not 'model_is_ready' in ss or not ss.model_is_ready:
+            if 'model_is_ready' not in ss or not ss.model_is_ready:
                 st.warning("Please set up the configuration")
             else:
                 ss.initiate_conversation = True
@@ -136,8 +135,8 @@ with st.sidebar:
                                      chat_history_start_time_list)
 
         if st.form_submit_button("Confirm",
-                                 disabled=(selected_item==None)):
-            if not 'model_is_ready' in ss or not ss.model_is_ready:
+                                 disabled=(True if selected_item is None else False)):
+            if 'model_is_ready' not in ss or not ss.model_is_ready:
                 st.warning("Please set up the configuration")
             else:
                 ss.current_conversation_id = selected_item
@@ -195,7 +194,7 @@ elif ss.model_config['model'] in ["llama2",
                        "[/INST]",
                        "<<SYS>>",
                        "<</SYS>>"]
-    
+
     chain = prompt | ChatOllama(model=ss.model_config['model'],
                                 base_url='http://ollama:11434',
                                 stop=stop_tokens,
@@ -224,16 +223,16 @@ with chat_tab:
             ss.current_conversation_id = start_conversation(session=db_session)
             msgs.add_ai_message("Hi, how are you doing today!")
             store_message(session=db_session,
-                        conversation_id=ss.current_conversation_id,
-                        message=msgs.messages[-1].content,
-                        role="ai",)
-            
+                          conversation_id=ss.current_conversation_id,
+                          message=msgs.messages[-1].content,
+                          role="ai", )
+
     # Render current messages from StreamlitChatMessageHistory
     messageView = st.container(border=True)
 
     for msg in msgs.messages:
         messageView.chat_message(msg.type).write(msg.content)
-    
+
     user_input = st.chat_input("Your message", key="chat_input")
 
     # If user inputs a new prompt, generate and draw a new response
@@ -242,8 +241,8 @@ with chat_tab:
         store_message(session=db_session,
                       conversation_id=ss.current_conversation_id,
                       message=user_input,
-                      role="human",)
-        
+                      role="human", )
+
         config = {"configurable": {"session_id": "any"}}
         response = chain_with_history.stream({"question": user_input},
                                              config)
@@ -252,7 +251,6 @@ with chat_tab:
                       conversation_id=ss.current_conversation_id,
                       message=msgs.messages[-1].content,
                       role="ai")
-    
 
 with summary_tab:
     st.header("Summary")
@@ -277,15 +275,15 @@ with summary_tab:
                                                                        conversation_id=ss.current_conversation_id))
             if ss.model_config['model'] in ["gpt-3.5-turbo",
                                             "gpt-4"]:
-                 ss.summary = ChatOpenAI(model=ss.model_config['model'],
-                                         api_key=openai_api_key).invoke(prompts.get_summary_prompt(prev_messages)).content
+                ss.summary = ChatOpenAI(model=ss.model_config['model'],
+                                        api_key=openai_api_key).invoke(
+                    prompts.get_summary_prompt(prev_messages)).content
             else:
                 ss.summary = generate(local_model_name=ss.model_config['model'],
                                       prompt=prompts.get_summary_prompt(prev_messages)).json()['response']
-                    
+
             store_summary(session=db_session,
                           conversation_id=ss.current_conversation_id,
                           summary=ss.summary)
-                
+
             summary_view.write(ss.summary)
-                

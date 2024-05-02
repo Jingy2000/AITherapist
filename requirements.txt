@@ -10,3 +10,5 @@ accelerate
 tensorboard
 pymysql
 cryptography
+requests
+sqlalchemy
