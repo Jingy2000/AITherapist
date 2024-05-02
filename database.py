@@ -1,7 +1,7 @@
 import time
 from datetime import datetime
 from sqlalchemy.exc import OperationalError
-from sqlalchemy import (create_engine, Column, Integer,
+from sqlalchemy import (create_engine, Column, Integer, Boolean,
                         String, DateTime, Enum, ForeignKey)
 from sqlalchemy.orm import (sessionmaker,
                             relationship,
@@ -15,6 +15,7 @@ class Conversation(Base):
     id = Column(Integer, primary_key=True)
     start_time = Column(DateTime, default=datetime.now())
     summary = Column(String(2048))
+    need_summary = Column(Boolean, default=True)
 
     # Relationship to link messages to a conversation
     messages = relationship("Message", back_populates="conversation")
@@ -81,6 +82,9 @@ def get_conversation_messages(session, conversation_id):
 
 def get_conversation_summary(session, conversation_id):
     return session.query(Conversation).filter_by(id=conversation_id).one().summary
+
+def get_summary_status(session, conversation_id):
+    return session.query(Conversation).filter_by(id=conversation_id).one().need_summary
 
 def get_all_conversations(session):
     return session.query(Conversation).all()

@@ -15,7 +15,8 @@ from database import (create_engine_with_checks,
                       store_message,
                       get_conversation_summary,
                       store_summary,
-                      )
+                      get_summary_status,
+                      concate_messages)
 from restful_ollama import pull, generate
 import prompts
 
@@ -39,9 +40,10 @@ db_session = create_session(engine=db_engine)
 st.set_page_config(
     page_title="AI Therapist",
     page_icon=":coffee:",
-    initial_sidebar_state="auto"
+    initial_sidebar_state="auto",
+    layout='centered'
     )
-st.markdown("<h2 style='text-align:left;font-family:Georgia'>Your AI Therapist</h2>",
+st.markdown("<h2 style='text-align:center;font-family:Georgia'>Your AI Therapist</h2>",
             unsafe_allow_html=True)
 
 ss = st.session_state
@@ -56,8 +58,8 @@ with st.sidebar:
                      "gpt-4",
                      "llama2-ft",
                      "llama2",
-                     "mistral",
-                     "llama3"),
+                     "llama3",
+                     "mistral"),
             index=0,
             )
         openai_api_key = st.text_input(
@@ -122,6 +124,8 @@ with st.sidebar:
                     del ss.selected_chat_history
                 if "chat_messages" in ss:
                     del ss.chat_messages
+                if "summary" in ss:
+                    del ss.summary
 
     with st.form("history"):
         st.header("Chat history")
@@ -137,44 +141,29 @@ with st.sidebar:
                 st.warning("Please set up the configuration")
             else:
                 ss.current_conversation_id = selected_item
-                ss.selected_chat_history = get_conversation_messages(
-                    session=db_session,
-                    conversation_id=selected_item)
+                ss.selected_chat_history = get_conversation_messages(session=db_session,
+                                                                     conversation_id=selected_item)
                 if "chat_messages" in ss:
                     del ss.chat_messages
+                if "summary" in ss:
+                    del ss.summary
                 if "initiate_conversation" in ss:
                     del ss.initiate_conversation
                 ss.initiate_conversation = False
-                st.write(f"You selected {selected_item}")
-            
-
-st.divider()
+                st.write(f"You selected conversation ID: {selected_item}")
 
 if "initiate_conversation" not in ss and "selected_chat_history" not in ss:
-    st.markdown(prompts.INTRO_1)
-    st.markdown(prompts.INTRO_2)
+    st.divider()
+    col1, col2, col3 = st.columns([1, 3, 1])
+    with col2:
+        st.markdown(prompts.INTRO_1)
+        st.markdown(prompts.INTRO_2)
     st.stop()
 
+if not ss.model_is_ready:
+    st.stop()
 
 msgs = StreamlitChatMessageHistory(key="chat_messages")
-
-if 'selected_chat_history' in ss:
-    if len(msgs.messages) == 0:
-        for msg_history in ss.selected_chat_history:
-            if msg_history.role == "ai":
-                msgs.add_ai_message(msg_history.message)
-            elif msg_history.role == "human":
-                msgs.add_user_message(msg_history.message)
-elif "initiate_conversation" in ss:
-    if len(msgs.messages) == 0:
-        ss.current_conversation_id = start_conversation(session=db_session)
-        msgs.add_ai_message("Hi, how are you doing today!")
-        store_message(session=db_session,
-                      conversation_id=ss.current_conversation_id,
-                      message=msgs.messages[-1].content,
-                      role="ai",)
-else:
-    st.stop()
 
 # Set up the LangChain, passing in Message History
 prompt = ChatPromptTemplate.from_messages(
@@ -187,7 +176,8 @@ prompt = ChatPromptTemplate.from_messages(
 
 if ss.model_config['model'] in ["gpt-3.5-turbo",
                                 "gpt-4"]:
-    chain = prompt | ChatOpenAI(temperature=ss.model_config['temperature'],
+    chain = prompt | ChatOpenAI(model=ss.model_config['model'],
+                                temperature=ss.model_config['temperature'],
                                 api_key=ss.model_config['openai_api_key'])
 elif ss.model_config['model'] in ["llama2",
                                   "mistral",
@@ -218,23 +208,84 @@ chain_with_history = RunnableWithMessageHistory(
     history_messages_key="history",
 )
 
-# Render current messages from StreamlitChatMessageHistory
-for msg in msgs.messages:
-    st.chat_message(msg.type).write(msg.content)
+chat_tab, summary_tab = st.tabs(['Chat', 'Summary'])
 
-# If user inputs a new prompt, generate and draw a new response
-if prompt := st.chat_input():
-    st.chat_message("human").write(prompt)
-    store_message(session=db_session,
-                  conversation_id=ss.current_conversation_id,
-                  message=prompt,
-                  role="human",)
+with chat_tab:
+    st.header("Chat")
+    if 'selected_chat_history' in ss:
+        if len(msgs.messages) == 0:
+            for msg_history in ss.selected_chat_history:
+                if msg_history.role == "ai":
+                    msgs.add_ai_message(msg_history.message)
+                elif msg_history.role == "human":
+                    msgs.add_user_message(msg_history.message)
+    elif "initiate_conversation" in ss:
+        if len(msgs.messages) == 0:
+            ss.current_conversation_id = start_conversation(session=db_session)
+            msgs.add_ai_message("Hi, how are you doing today!")
+            store_message(session=db_session,
+                        conversation_id=ss.current_conversation_id,
+                        message=msgs.messages[-1].content,
+                        role="ai",)
+            
+    # Render current messages from StreamlitChatMessageHistory
+    messageView = st.container(border=True)
+
+    for msg in msgs.messages:
+        messageView.chat_message(msg.type).write(msg.content)
     
-    config = {"configurable": {"session_id": "any"}}
-    response = chain_with_history.stream({"question": prompt},
-                                         config)
-    st.chat_message("ai").write_stream(response)
-    store_message(session=db_session,
-                  conversation_id=ss.current_conversation_id,
-                  message=msgs.messages[-1].content,
-                  role="ai")
+    user_input = st.chat_input("Your message", key="chat_input")
+
+    # If user inputs a new prompt, generate and draw a new response
+    if user_input:
+        messageView.chat_message("human").write(user_input)
+        store_message(session=db_session,
+                      conversation_id=ss.current_conversation_id,
+                      message=user_input,
+                      role="human",)
+        
+        config = {"configurable": {"session_id": "any"}}
+        response = chain_with_history.stream({"question": user_input},
+                                             config)
+        messageView.chat_message("ai").write_stream(response)
+        store_message(session=db_session,
+                      conversation_id=ss.current_conversation_id,
+                      message=msgs.messages[-1].content,
+                      role="ai")
+    
+
+with summary_tab:
+    st.header("Summary")
+    summary_view = st.empty()
+
+    if "summary" in ss:
+        summary_view.write(ss.summary)
+    else:
+        summary_from_db = get_conversation_summary(session=db_session,
+                                                   conversation_id=ss.current_conversation_id)
+        if summary_from_db:
+            summary_view.write(summary_from_db)
+
+    if st.button('Generate Summary'):
+        # Check if necessary to generate a summary for selected conversation
+        need_summary = get_summary_status(session=db_session,
+                                          conversation_id=ss.current_conversation_id)
+        if need_summary:
+            summary_view.empty()
+            summary_view.warning("Generating...")
+            prev_messages = concate_messages(get_conversation_messages(session=db_session,
+                                                                       conversation_id=ss.current_conversation_id))
+            if ss.model_config['model'] in ["gpt-3.5-turbo",
+                                            "gpt-4"]:
+                 ss.summary = ChatOpenAI(model=ss.model_config['model'],
+                                         api_key=openai_api_key).invoke(prompts.get_summary_prompt(prev_messages)).content
+            else:
+                ss.summary = generate(local_model_name=ss.model_config['model'],
+                                      prompt=prompts.get_summary_prompt(prev_messages)).json()['response']
+                    
+            store_summary(session=db_session,
+                          conversation_id=ss.current_conversation_id,
+                          summary=ss.summary)
+                
+            summary_view.write(ss.summary)
+                

@@ -10,7 +10,7 @@ def pull(local_model_name: str):
     return response
 
 def generate(local_model_name: str, prompt: str):
-    url = "http://localhost:11434/api/generate"
+    url = "http://ollama:11434/api/generate"
     data = {"model": local_model_name,
             "prompt": prompt,
             "stream": False
