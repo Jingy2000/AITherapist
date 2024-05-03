@@ -33,7 +33,7 @@ class TestOllamaAPIRequests(unittest.TestCase):
         response = generate('llama2', 'Please summarize the text.')
 
         mock_post.assert_called_once_with(
-            'http://localhost:11434/api/generate',
+            'http://ollama:11434/api/generate',
             json={'model': 'llama2',
                   'prompt': 'Please summarize the text.',
                   'stream': False,
