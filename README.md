@@ -40,6 +40,29 @@ For systems without CUDA support, you can run the application using the CPU-only
 
     docker compose -f docker-compose-cpu.yml up --build
 
+## Get Started with Your AI Therapist
+### Configuration
+Before starting a new conversation, configure your session:
+- Select the Model: Click on the dropdown menu under "Model" to select the appropriate AI model (e.g., gpt-3.5-turbo, llama2).
+- Enter Your OpenAI API Key: If you are using models that require an OpenAI API key (such as gpt-3.5-turbo), enter your key in the provided field.
+- Adjust the Temperature: Use the slider to set the 'Temperature' which influences the variety in responses. A lower temperature results in more predictable responses, while a higher temperature generates more diverse outputs.
+- Submit Configuration: Click 'Submit' to save your settings.
+
+### Start a New Conversation
+To initiate a new chat:
+- Open a New Conversation Session: Click on the 'Start' button under the "New Conversation" area to begin interacting with the AI therapist.
+- Engage with Your AI Therapist: Use the chat input box at the bottom of the "Chat" tab to type your messages.
+
+### Review and Resume Conversations
+If you wish to review and/or resume past conversations:
+- Access Chat History: Navigate to the "Chat History" section located on the configuration sidebar. Use the dropdown menu to select a previous conversation you wish to review or continue.
+- Load and Resume Conversation: Click 'Confirm' to load the selected conversation into the chat interface. Once the conversation is displayed, you can continue interacting with the AI therapist from where you left off.
+
+### Generate a Summary
+Once you feel the conversation has reached a point where a summary could be useful, or at the end of your session, navigate to the "Summary" tab next to the "Chat" tab.
+- View Your Session Summary  
+Click the "Generate Summary" button. This action prompts the AI to analyze the conversation and extract key points, issues, and themes. The summary will appear within the tab, highlighting significant aspects of your dialogue.
+
 ## Stop the Application
 ### Regular Shutdown
 To stop the application without removing Docker volumes, use the command corresponding to how you started the application:
