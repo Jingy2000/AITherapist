@@ -22,7 +22,7 @@ The application supports CUDA devices. For optimal performance, ensure that your
     All downloaded models are stored in a dedicated Docker volume. This ensures that models persist across application restarts and updates.
     - Size Considerations:  
     Each model requires approximately 4.7GB of storage space.
-4. To use the features in this application that rely on OpenAI's models, you will need an API key from OpenAI.
+4. To use the features in this application that rely on OpenAI's models, you will need an API key from OpenAI. You can obtain an API key by logging into your OpenAI account and [creating a new API key](https://platform.openai.com/account/api-keys).
 
 ## Preparing to Run the Application
 Before running the application, you need to navigate to the app directory, which contains all the necessary files for running the application. Use the following command to change to the app directory:
