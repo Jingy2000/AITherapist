@@ -42,7 +42,7 @@ For systems without CUDA support, you can run the application using the CPU-only
 
 ## Get Started with Your AI Therapist
 ### Address
-- Go to <localhost:8501>
+- Go to <http://localhost:8501>
     - note: SQL container may take a few extra seconds for its initiation.
 ### Configuration
 Before starting a new conversation, configure your session:
