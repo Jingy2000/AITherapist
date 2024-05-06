@@ -12,7 +12,7 @@ This guide will help you set up the application on your machine. Ensure you have
 
 ### Installation Notes:
 1. **MacOS Compatibility**:  
-Users with MacOS devices that use M1, M2, or M3 chips should note that this application cannot utilize the mps backend for computation acceleration. This limitation is due to Docker operating as a virtual machine on MacOS, which does not support GPU-like hardware passthrough.
+Users with MacOS devices Apple silicon should note that this application cannot utilize the mps backend for computation acceleration. This limitation is due to Docker operating as a virtual machine on MacOS, which does not support GPU-like hardware passthrough.
 2. **CUDA Device Support**:  
 The application supports CUDA devices. For optimal performance, ensure that your device has at least 6GB of available memory. Note that memory usage might increase if extended conversations are processed.
 3. **Model Management**:
@@ -41,6 +41,9 @@ For systems without CUDA support, you can run the application using the CPU-only
     docker compose -f docker-compose-cpu.yml up --build
 
 ## Get Started with Your AI Therapist
+### Address
+- Go to <localhost:8501>
+    - note: SQL container may take a few extra seconds for its initiation.
 ### Configuration
 Before starting a new conversation, configure your session:
 - Select the Model: Click on the dropdown menu under "Model" to select the appropriate AI model (e.g., gpt-3.5-turbo, llama2).
