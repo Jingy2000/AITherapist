@@ -15,14 +15,15 @@ This guide will help you set up the application on your machine. Ensure you have
 Users using MacOS devices with Apple silicon should note that this application cannot utilize the mps backend for computation acceleration. This limitation is due to Docker operating as a virtual machine on MacOS, which does not support GPU-like hardware passthrough.
 2. **CUDA Device Support**:  
 The application supports CUDA devices. For optimal performance, ensure that your device has at least 6GB of available memory. Note that memory usage might increase if extended conversations are processed.
-3. **Model Management**:
+Note if you are running the app under WSL2, you need to [Installing the NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+4. **Model Management**:
     - Initial Download:  
     Upon first selection, the application will automatically download the chosen models.
     - Storage:  
     All downloaded models are stored in a dedicated Docker volume. This ensures that models persist across application restarts and updates.
     - Size Considerations:  
     Each model requires approximately 4.7GB of storage space.
-4. To use the features in this application that rely on OpenAI's models, you will need an API key from OpenAI. You can obtain an API key by logging into your OpenAI account and [creating a new API key](https://platform.openai.com/account/api-keys).
+5. To use the features in this application that rely on OpenAI's models, you will need an API key from OpenAI. You can obtain an API key by logging into your OpenAI account and [creating a new API key](https://platform.openai.com/account/api-keys).
 
 ## Preparing to Run the Application
 Before running the application, you need to navigate to the app directory, which contains all the necessary files for running the application. Use the following command to change to the app directory:
