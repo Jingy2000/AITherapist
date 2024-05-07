@@ -15,7 +15,7 @@ This guide will help you set up the application on your machine. Ensure you have
 Users using MacOS devices with Apple silicon should note that this application cannot utilize the mps backend for computation acceleration. This limitation is due to Docker operating as a virtual machine on MacOS, which does not support GPU-like hardware passthrough.
 2. **CUDA Device Support**:  
 The application supports CUDA devices. For optimal performance, ensure that your device has at least 6GB of available memory. Note that memory usage might increase if extended conversations are processed.
-Note if you are running the app under WSL2, you need to [Installing the NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+Note if you are running the app under Linux, you need to [Installing the NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
 4. **Model Management**:
     - Initial Download:  
     Upon first selection, the application will automatically download the chosen models.
@@ -47,7 +47,7 @@ For systems without CUDA support, you can run the application using the CPU-only
     - note: SQL container may take a few extra seconds for its initiation.
 ### Configuration
 Before starting a new conversation, configure your session:
-- Select the Model: Click on the dropdown menu under "Model" to select the appropriate AI model (e.g., gpt-3.5-turbo, llama2).
+- Select the Model: Click on the dropdown menu under "Model" to select the appropriate AI model (e.g., gpt-3.5-turbo, llama2). Our fine-tuned model is "llama2-ft".
 - Enter Your OpenAI API Key: If you are using models that require an OpenAI API key (such as gpt-3.5-turbo), enter your key in the provided field.
 - Adjust the Temperature: Use the slider to set the 'Temperature' which influences the variety in responses. A lower temperature results in more predictable responses, while a higher temperature generates more diverse outputs.
 - Submit Configuration: Click 'Submit' to save your settings.
